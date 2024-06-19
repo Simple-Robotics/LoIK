@@ -4,11 +4,12 @@
 
 #include "loik/loik-loid-optimized.hpp"
 
-namespace loik {
+namespace loik
+{
 
-template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI
-    FirstOrderLoikOptimizedTpl<pinocchio::context::Scalar,
-                               pinocchio::context::Options,
-                               pinocchio::JointCollectionDefaultTpl>;
+  template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI FirstOrderLoikOptimizedTpl<
+    pinocchio::context::Scalar,
+    pinocchio::context::Options,
+    pinocchio::JointCollectionDefaultTpl>;
 
 } // namespace loik

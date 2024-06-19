@@ -4,9 +4,10 @@
 
 #include "loik/loik-loid.hpp"
 
-namespace loik {
+namespace loik
+{
 
-template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI
+  template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI
     FirstOrderLoikTpl<pinocchio::context::Scalar>;
 
 } // namespace loik

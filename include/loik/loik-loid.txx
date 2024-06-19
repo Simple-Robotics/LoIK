@@ -9,5 +9,6 @@
 
 namespace loik
 {
-    extern template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI FirstOrderLoikTpl<pinocchio::context::Scalar>;
+  extern template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI
+    FirstOrderLoikTpl<pinocchio::context::Scalar>;
 } // namespace loik
