@@ -1,0 +1,19 @@
+markup:
+  first_comment_is_literal: true
+format:
+  line_width: 100
+parse:
+  additional_commands:
+    cxx_flags_by_compiler_frontend:
+      pargs: 0
+      kwargs:
+        OUTPUT: 1
+        GNU: '*'
+        MSVC: '*'
+        FILTER: 0
+    add_project_dependency:
+      pargs: '*'
+      kwargs:
+        PKG_CONFIG_REQUIRES: 1
+        FOR_COMPONENT: 1
+        FIND_EXTERNAL: 1
