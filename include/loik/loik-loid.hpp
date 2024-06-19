@@ -139,17 +139,17 @@ namespace loik
       const bool verbose,
       const bool logging)
     : Base(
-        max_iter,
-        tol_abs,
-        tol_rel,
-        tol_primal_inf,
-        tol_dual_inf,
-        rho,
-        mu,
-        mu_equality_scale_factor,
-        mu_update_strat,
-        verbose,
-        logging)
+      max_iter,
+      tol_abs,
+      tol_rel,
+      tol_primal_inf,
+      tol_dual_inf,
+      rho,
+      mu,
+      mu_equality_scale_factor,
+      mu_update_strat,
+      verbose,
+      logging)
     , model_(model)
     , ik_id_data_(ik_id_data)
     , problem_(model.njoints, model.njoints - 1, num_eq_c, eq_c_dim, model.nv)
@@ -647,6 +647,24 @@ namespace loik
         std::cout << "normInf delta_y_qp: "
                   << problem_.delta_y_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
       }
+
+      if (this->verbose_)
+      {
+        DVec dual_residual_from_qp = problem_.P_qp_ * problem_.x_qp_ + problem_.q_qp_
+                                     + problem_.A_qp_.transpose() * problem_.y_qp_;
+
+        std::cout << "dual residual from QP:"
+                  << dual_residual_from_qp.template lpNorm<Eigen::Infinity>() << std::endl;
+
+        std::cout << "dual residual v from QP:"
+                  << (dual_residual_from_qp.segment(0, 6 * nb_)).template lpNorm<Eigen::Infinity>()
+                  << std::endl;
+
+        std::cout
+          << "dual residual nu from QP:"
+          << (dual_residual_from_qp.segment(6 * nb_, nv_)).template lpNorm<Eigen::Infinity>()
+          << std::endl;
+      }
     };
 
     ///
@@ -851,7 +869,7 @@ namespace loik
     ///
     /// \brief compute primal residual final
     ///
-    void ComputePrimalResidualFinal() {
+    void ComputePrimalResidualFinal(){
 
     };
 

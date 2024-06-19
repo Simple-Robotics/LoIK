@@ -472,27 +472,35 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
     LoikSolver.get_primal_residual_vec().isApprox(LoikSolver_test.get_primal_residual_vec()));
   BOOST_CHECK(LoikSolver.get_dual_residual() == LoikSolver_test.get_dual_residual());
   BOOST_CHECK(LoikSolver.get_dual_residual_vec().isApprox(LoikSolver_test.get_dual_residual_vec()));
-  std::cout << "primal residual from LoikSolver: " << LoikSolver.get_primal_residual() << std::endl;
-  std::cout << "primal residual from LoikSolver_test: " << LoikSolver_test.get_primal_residual()
-            << std::endl;
-  std::cout << "dual residual from LoikSolver: " << LoikSolver.get_dual_residual() << std::endl;
-  std::cout << "dual residual from LoikSolver_test: " << LoikSolver_test.get_dual_residual()
-            << std::endl;
-  std::cout << "dual residual v from LoikSolver: " << LoikSolver.get_dual_residual_v() << std::endl;
-  std::cout << "dual residual v from LoikSolver_test: " << LoikSolver_test.get_dual_residual_v()
-            << std::endl;
-  std::cout << "dual residual nu from LoikSolver: " << LoikSolver.get_dual_residual_nu()
-            << std::endl;
-  std::cout << "dual residual nu from LoikSolver_test: " << LoikSolver_test.get_dual_residual_nu()
-            << std::endl;
-  std::cout << "dual residual vec from LoikSolver: "
-            << LoikSolver.get_dual_residual_vec().transpose() << std::endl;
-  std::cout << "dual residual vec from LoikSolver_test: "
-            << LoikSolver_test.get_dual_residual_vec().transpose() << std::endl;
+  // std::cout << "primal residual from LoikSolver: " << LoikSolver.get_primal_residual() <<
+  // std::endl; std::cout << "primal residual from LoikSolver_test: " <<
+  // LoikSolver_test.get_primal_residual()
+  //           << std::endl;
+  // std::cout << "dual residual from LoikSolver: " << LoikSolver.get_dual_residual() << std::endl;
+  // std::cout << "dual residual from LoikSolver_test: " << LoikSolver_test.get_dual_residual()
+  //           << std::endl;
+  // std::cout << "dual residual v from LoikSolver: " << LoikSolver.get_dual_residual_v() <<
+  // std::endl; std::cout << "dual residual v from LoikSolver_test: " <<
+  // LoikSolver_test.get_dual_residual_v()
+  //           << std::endl;
+  // std::cout << "dual residual nu from LoikSolver: " << LoikSolver.get_dual_residual_nu()
+  //           << std::endl;
+  // std::cout << "dual residual nu from LoikSolver_test: " <<
+  // LoikSolver_test.get_dual_residual_nu()
+  //           << std::endl;
+  // std::cout << "dual residual vec from LoikSolver: "
+  //           << LoikSolver.get_dual_residual_vec().transpose() << std::endl;
+  // std::cout << "dual residual vec from LoikSolver_test: "
+  //           << LoikSolver_test.get_dual_residual_vec().transpose() << std::endl;
 }
 
 BOOST_AUTO_TEST_CASE(test_pinocchio_types)
 {
+  pinocchio::SE3 liMi = pinocchio::SE3::Random();
+  pinocchio::Force f = pinocchio::Force::Random();
+
+  BOOST_CHECK(
+    (liMi.actInv(f).toVector()).isApprox(liMi.toActionMatrix().transpose() * f.toVector()));
 
   Mat6x6 R6 = Vec6::Random().asDiagonal();
   Mat6x6 RtR = R6.transpose() + R6;

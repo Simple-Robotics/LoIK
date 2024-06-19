@@ -355,17 +355,17 @@ namespace loik
       const bool verbose,
       const bool logging)
     : Base(
-        max_iter,
-        tol_abs,
-        tol_rel,
-        tol_primal_inf,
-        tol_dual_inf,
-        rho,
-        mu,
-        mu_equality_scale_factor,
-        mu_update_strat,
-        verbose,
-        logging)
+      max_iter,
+      tol_abs,
+      tol_rel,
+      tol_primal_inf,
+      tol_dual_inf,
+      rho,
+      mu,
+      mu_equality_scale_factor,
+      mu_update_strat,
+      verbose,
+      logging)
     , model_(model)
     , ik_id_data_(ik_id_data)
     , problem_(model.njoints, model.njoints - 1, num_eq_c, eq_c_dim, model.nv)
@@ -501,7 +501,7 @@ namespace loik
     ///
     /// \brief LOIK first packward pass
     ///
-    void BwdPass() {
+    void BwdPass(){
       // // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
 
       // // loop over joint range in reverse
@@ -641,7 +641,7 @@ namespace loik
     ///
     /// \brief LOIK second forward pass
     ///
-    void FwdPass2() {
+    void FwdPass2(){
 
       // for (const auto& idx : joint_range_) {
 
@@ -680,7 +680,7 @@ namespace loik
     ///
     /// \brief LOIK second forward pass
     ///
-    void FwdPass2Optimized() {
+    void FwdPass2Optimized(){
       // // std::cout << "****************FwdPass2******************" <<
       // std::endl;
 
@@ -1031,7 +1031,8 @@ namespace loik
     ///
     /// \brief Check primal and dual convergence
     ///
-    void CheckConvergence() {
+    void CheckConvergence()
+    {
       // // update primal residual tolerance
       // // TODO: move 'problem_.A_qp_ * problem_.x_qp_' to FwdPass2()
       // this->tol_primal_ = this->tol_abs_
@@ -1052,23 +1053,23 @@ namespace loik
       //                                               (problem_.q_qp_).template
       //                                               lpNorm<Eigen::Infinity>());
 
-      // // check convergence
-      // if ( (this->primal_residual_ < this->tol_primal_) &&
-      // (this->dual_residual_ < this->tol_dual_) ) {
-      //     this->converged_ = true;
+      // check convergence
+      if ((this->primal_residual_ < this->tol_primal_) && (this->dual_residual_ < this->tol_dual_))
+      {
+        this->converged_ = true;
 
-      //     if (this->verbose_) {
-      //         std::cerr << "[FirstOrderLoikOptimizedTpl::CheckConvergence]:
-      //         converged in " << this->iter_ << "iterations !!!" << std::endl;
-      //     }
-      // }
-
+        if (this->verbose_)
+        {
+          std::cerr << "[FirstOrderLoikOptimizedTpl::CheckConvergence]: converged in "
+                    << this->iter_ << " iterations !!!" << std::endl;
+        }
+      }
     };
 
     ///
     /// \brief Check primal and dual feasibility
     ///
-    void CheckFeasibility() {
+    void CheckFeasibility(){
 
       // // check for primal infeasibility
       // bool primal_infeasibility_cond_1 = (problem_.A_qp_.transpose() *
@@ -1160,7 +1161,7 @@ namespace loik
     ///
     /// \brief Update ADMM penalty mu
     ///
-    void UpdateMu() {
+    void UpdateMu(){
       // // std::cout << "***************UpdateMu****************" << std::endl;
       // if (this->mu_update_strat_ == ADMMPenaltyUpdateStrat::DEFAULT) {
       //     // update mu by threasholding primal and dual residual ratio
@@ -1209,7 +1210,7 @@ namespace loik
     ///
     /// \brief compute primal residual final
     ///
-    void ComputePrimalResidualFinal() {
+    void ComputePrimalResidualFinal(){
 
     };
 
