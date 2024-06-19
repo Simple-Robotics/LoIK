@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "loik/macros.hpp"
 #include "loik/loik-loid-data-optimized.hpp"
 
 #include <pinocchio/math/comparison-operators.hpp>
@@ -93,9 +94,9 @@ namespace loik
         H_refs_[idx] = H_ref_target;
         v_refs_[idx] = v_ref_target;
 
-        PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         Hv[idx] = H_refs_[idx] * v_refs_[idx].toVector();
-        PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        LOIK_EIGEN_MALLOC_ALLOWED();
       }
     };
 
@@ -118,9 +119,9 @@ namespace loik
 
       for (Index idx = 0; idx < H_refs_.size(); idx++)
       {
-        PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         Hv[idx] = H_refs_[idx] * v_refs_[idx].toVector();
-        PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        LOIK_EIGEN_MALLOC_ALLOWED();
       }
     };
 
@@ -170,10 +171,10 @@ namespace loik
 
       for (Index idx = 0; idx < Ais_.size(); idx++)
       {
-        PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         AtA[idx] = Ais_[idx].transpose() * Ais_[idx];
         Atb[idx] = Ais_[idx].transpose() * bis_[idx];
-        PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        LOIK_EIGEN_MALLOC_ALLOWED();
       }
     };
 
@@ -224,10 +225,10 @@ namespace loik
       // update bi
       bis_[c_id_in_vec] = bi;
       // udpate utility
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
       AtA[c_id_in_vec] = Ai.transpose() * Ai;
       Atb[c_id_in_vec] = Ai.transpose() * bi;
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///
@@ -295,11 +296,11 @@ namespace loik
         bis_.push_back(bi);
 
         // add to utility
-        // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         AtA.push_back(Ai.transpose() * Ai);
         Atb.push_back(Ai.transpose() * bi);
         // Aty.push_back(Vec6::Zero());
-        // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        // LOIK_EIGEN_MALLOC_ALLOWED();
       }
     };
 

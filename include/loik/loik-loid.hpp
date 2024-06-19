@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "loik/macros.hpp"
 #include "loik/ik-id-description.hpp"
 #include "loik/loik-loid-data.hpp"
 #include "loik/task-solver-base.hpp"
@@ -179,7 +180,7 @@ namespace loik
       // std::cout << "*******************FwdPassInit*******************" <<
       // std::endl;
 
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       for (const auto & idx : joint_range_)
       {
@@ -200,7 +201,7 @@ namespace loik
         // std::cout << "Si matrix: " << Si_mat << std::endl;
       }
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
 
       // std::cout << " " << std::endl;
     };
@@ -210,7 +211,7 @@ namespace loik
     ///
     void FwdPass1()
     {
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       for (const auto & idx : joint_range_)
       {
@@ -232,10 +233,10 @@ namespace loik
         const Motion & v_ref = problem_.v_refs_[idx];
         ik_id_data_.His[idx].noalias() = this->rho_ * DMat::Identity(6, 6) + H_ref;
 
-        // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         ik_id_data_.pis[idx].noalias() =
           -this->rho_ * ik_id_data_.vis_prev[idx].toVector() - H_ref.transpose() * v_ref.toVector();
-        // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        // LOIK_EIGEN_MALLOC_ALLOWED();
       }
 
       Index c_vec_id = 0;
@@ -251,7 +252,7 @@ namespace loik
         c_vec_id++;
       }
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///
@@ -259,7 +260,7 @@ namespace loik
     ///
     void BwdPass()
     {
-      // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       // loop over joint range in reverse
       for (auto it = joint_range_.rbegin(); it != joint_range_.rend(); ++it)
@@ -297,7 +298,7 @@ namespace loik
           * (Pi * pi - Hi * Si * Di_inv * ri); // TODO: this will cause memory allocation
       }
 
-      // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      // LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///
@@ -309,7 +310,7 @@ namespace loik
       // loop over joint range in reverse
       for (auto it = joint_range_.rbegin(); it != joint_range_.rend(); ++it)
       {
-        PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         Index idx = *it;
 
         const JointModel & jmodel = model_.joints[idx];
@@ -329,7 +330,7 @@ namespace loik
         ik_id_data_.His[parent].noalias() +=
           pinocchio::impl::internal::SE3actOn<Scalar>::run(liMi, Hi);
 
-        PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        LOIK_EIGEN_MALLOC_ALLOWED();
 
         ri.noalias() += jdata.S().transpose() * pi;
 
@@ -360,7 +361,7 @@ namespace loik
     {
       // std::cout << "****************FwdPass2******************" << std::endl;
 
-      // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       for (const auto & idx : joint_range_)
       {
@@ -404,7 +405,7 @@ namespace loik
         ik_id_data_.fis[idx].noalias() = Hi * ik_id_data_.vis[idx].toVector() + pi;
       }
 
-      // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      // LOIK_EIGEN_MALLOC_ALLOWED();
 
       // std::cout << "nu: " << ik_id_data_.nu.transpose() << std::endl;
 
@@ -418,7 +419,7 @@ namespace loik
     {
       // std::cout << "****************FwdPass2******************" << std::endl;
 
-      // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       for (const auto & idx : joint_range_)
       {
@@ -468,11 +469,11 @@ namespace loik
     ///
     void BoxProj()
     {
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
       // update slack
       ik_id_data_.z.noalias() = problem_.ub_.cwiseMin(
         problem_.lb_.cwiseMax(ik_id_data_.nu + (1.0 / mu_ineq_) * ik_id_data_.w));
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///
@@ -480,7 +481,7 @@ namespace loik
     ///
     void DualUpdate()
     {
-      // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
       // update dual variables associated with motion constraints
       // 'ik_id_data_.yis'
       Index c_vec_id = 0;
@@ -501,7 +502,7 @@ namespace loik
       // constraints 'ik_id_data_.w'
       ik_id_data_.w.noalias() += mu_ineq_ * (ik_id_data_.nu - ik_id_data_.z);
 
-      // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      // LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///

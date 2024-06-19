@@ -5,6 +5,7 @@
 #pragma once
 
 #include "loik/config.hpp"
+#include "loik/macros.hpp"
 
 #include <pinocchio/math/tensor.hpp>
 #include <pinocchio/spatial/fwd.hpp>
@@ -280,7 +281,7 @@ namespace loik
     ///
     /// \brief default constructor
     ///
-    IkIdDataTypeOptimizedTpl() {};
+    IkIdDataTypeOptimizedTpl(){};
 
     ///
     /// \brief construct from pinocchio::ModelTpl
@@ -439,4 +440,4 @@ namespace loik
 
 #if LOIK_ENABLE_TEMPLATE_INSTANTIATION
   #include "loik/loik-loid-data.txx"
-#endif // PINOCCHIO_ENABLE_TEMPLATE_INSTANTIATION
+#endif // LOIK_ENABLE_TEMPLATE_INSTANTIATION

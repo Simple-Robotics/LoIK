@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "loik/macros.hpp"
 #include "loik/ik-id-description-optimized.hpp"
 #include "loik/loik-loid-data-optimized.hpp"
 #include "loik/task-solver-base.hpp"
@@ -35,7 +36,7 @@ namespace loik
         const Model & model,
         IkIdData & ik_id_data)
       {
-        PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
         using Index = pinocchio::Index;
         using JointIndex = typename Model::JointIndex;
@@ -75,7 +76,7 @@ namespace loik
 
         // ik_id_data.pis[parent] += liMi.act(pi - jdata.UDinv() * ri);
 
-        PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        LOIK_EIGEN_MALLOC_ALLOWED();
 
       } // LoikBackwardStepVisitor::algo()
 
@@ -101,7 +102,7 @@ namespace loik
         const ProblemFormulation & problem)
       {
 
-        PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
         using Index = pinocchio::Index;
         using JointIndex = typename Model::JointIndex;
@@ -150,7 +151,7 @@ namespace loik
         // // ik_id_data_.fis[idx].noalias() = Hi * ik_id_data_.vis[idx].toVector()
         // + pi;
 
-        PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        LOIK_EIGEN_MALLOC_ALLOWED();
 
       } // LoikForwardStep2Visitor::algo
 
@@ -179,7 +180,7 @@ namespace loik
         const ProblemFormulation & problem,
         ResidualVec & dual_residual_vec)
       {
-        PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
         using Index = pinocchio::Index;
         using JointIndex = typename Model::JointIndex;
@@ -209,7 +210,7 @@ namespace loik
         jmodel.jointVelocitySelector(ik_id_data.Stf_plus_w) =
           jdata.S().transpose() * fi + jmodel.jointVelocitySelector(w);
 
-        PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        LOIK_EIGEN_MALLOC_ALLOWED();
 
       } // LoikBackwardStep2Visitor::algo
 
@@ -399,7 +400,7 @@ namespace loik
       // std::cout << "*******************FwdPassInit*******************" <<
       // std::endl;
 
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       for (const auto & idx : joint_range_)
       {
@@ -414,7 +415,7 @@ namespace loik
         ik_id_data_.oMi[idx] = ik_id_data_.oMi[parent] * ik_id_data_.liMi[idx];
       }
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
 
       // std::cout << " " << std::endl;
     };
@@ -424,7 +425,7 @@ namespace loik
     ///
     void FwdPass1()
     {
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       ik_id_data_.R.setOnes();
       ik_id_data_.R *= mu_ineq_;
@@ -443,7 +444,7 @@ namespace loik
 
         ik_id_data_.His_aba[idx].noalias() = ik_id_data_.His[idx];
 
-        // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         ik_id_data_.pis[idx].linear() = -this->rho_ * ik_id_data_.vis_prev[idx].linear();
         ik_id_data_.pis[idx].angular() = -this->rho_ * ik_id_data_.vis_prev[idx].angular();
         ik_id_data_.pis[idx].linear() -= Hv_i.template segment<3>(Motion::LINEAR);
@@ -455,7 +456,7 @@ namespace loik
 
         ik_id_data_.pis_aba[idx] = ik_id_data_.pis[idx];
 
-        // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        // LOIK_EIGEN_MALLOC_ALLOWED();
       }
 
       Index c_vec_id = 0;
@@ -495,14 +496,14 @@ namespace loik
         c_vec_id++;
       }
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///
     /// \brief LOIK first packward pass
     ///
     void BwdPass(){
-      // // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      // // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       // // loop over joint range in reverse
       // for (auto it = joint_range_.rbegin(); it != joint_range_.rend(); ++it)
@@ -540,7 +541,7 @@ namespace loik
 
       // }
 
-      // // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      // // LOIK_EIGEN_MALLOC_ALLOWED();
 
     };
 
@@ -553,7 +554,7 @@ namespace loik
       // loop over joint range in reverse
       for (auto it = joint_range_.rbegin(); it != joint_range_.rend(); ++it)
       {
-        // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
         Index idx = *it;
 
         JointModel & jmodel = model_.joints[idx];
@@ -577,7 +578,7 @@ namespace loik
         // impl::internal::SE3actOn<Scalar>::run(liMi, Hi_aba);
         // ik_id_data_.His_aba[parent].noalias() = ik_id_data_.His[parent];
 
-        // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        // LOIK_EIGEN_MALLOC_ALLOWED();
 
         // jmodel.jointVelocitySelector(r) += jdata.S().transpose() * pi;
         // const auto tmp_expr = jdata.UDinv() * jmodel.jointVelocitySelector(r);
@@ -596,7 +597,7 @@ namespace loik
 
         // typename JointData::Base jdata_base = ik_id_data_.joints[idx];
 
-        // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+        // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
         // if (idx == 7) {
         //     tmp0 = boost::get<JointDataRZ>(ik_id_data_.joints[7]).S.transpose()
@@ -612,7 +613,7 @@ namespace loik
         // // tmp0 = (ik_id_data_.joints[idx].S()).transpose() * pi;
         // // jmodel.jointVelocitySelector(r) += tmp0;
 
-        // PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+        // LOIK_EIGEN_MALLOC_ALLOWED();
 
         // DVec temp = jdata.UDinv() * jmodel.jointVelocitySelector(r);
 
@@ -684,7 +685,7 @@ namespace loik
       // // std::cout << "****************FwdPass2******************" <<
       // std::endl;
 
-      // // PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      // // LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       // for (const auto& idx : joint_range_) {
 
@@ -750,7 +751,7 @@ namespace loik
     ///
     void BoxProj()
     {
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
       // update slack
       ik_id_data_.z.noalias() = problem_.ub_.cwiseMin(
         problem_.lb_.cwiseMax(ik_id_data_.nu + (1.0 / mu_ineq_) * ik_id_data_.w));
@@ -758,7 +759,7 @@ namespace loik
       // update primal residual vector bottom half
       primal_residual_vec_.segment(6 * nb_, nv_).noalias() = ik_id_data_.nu - ik_id_data_.z;
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///
@@ -766,7 +767,7 @@ namespace loik
     ///
     void DualUpdate()
     {
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
       // update dual variables associated with motion constraints
       // 'ik_id_data_.yis'
       Index c_vec_id = 0;
@@ -801,7 +802,7 @@ namespace loik
       // constraints 'ik_id_data_.w'
       ik_id_data_.w.noalias() += mu_ineq_ * (ik_id_data_.nu - ik_id_data_.z);
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     };
 
     ///
@@ -818,9 +819,9 @@ namespace loik
           typename loik_bwd_pass2::ArgsType(model_, ik_id_data_, problem_, dual_residual_vec_));
       }
 
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
       dual_residual_vec_.segment(6 * nb_, nv_).noalias() = ik_id_data_.Stf_plus_w;
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     }
 
     ///
@@ -828,7 +829,7 @@ namespace loik
     ///
     void ComputePrimalResiduals()
     {
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
 
       // compute primal residual
       // Index c_vec_id = 0;
@@ -855,7 +856,7 @@ namespace loik
       primal_residual_slack_ =
         primal_residual_vec_.segment(6 * nb_, nv_).template lpNorm<Eigen::Infinity>();
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
     }
 
     ///
@@ -865,7 +866,7 @@ namespace loik
     {
       BwdPass2OptimizedVisitor();
 
-      PINOCCHIO_EIGEN_MALLOC_NOT_ALLOWED();
+      LOIK_EIGEN_MALLOC_NOT_ALLOWED();
       // dual_residual_prev_ = this->dual_residual_;
       // dual_residual_v_prev_ = dual_residual_v_;
       // dual_residual_nu_prev_ = dual_residual_nu_;
@@ -893,7 +894,7 @@ namespace loik
       //     lpNorm<Eigen::Infinity>() << std::endl;
       // }
 
-      PINOCCHIO_EIGEN_MALLOC_ALLOWED();
+      LOIK_EIGEN_MALLOC_ALLOWED();
 
       // // compute dual residual
       // for (auto it = joint_range_.rbegin(); it != joint_range_.rend(); ++it) {
