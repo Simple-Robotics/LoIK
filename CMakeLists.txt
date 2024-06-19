@@ -43,14 +43,12 @@ else()
         "\nCan't find jrl-cmakemodules. Please either:\n"
         "  - use git submodule: 'git submodule update --init'\n"
         "  - or install https://github.com/jrl-umi3218/jrl-cmakemodules\n"
-        "  - or upgrade your CMake version to >= 3.14 to allow automatic fetching\n"
-    )
+        "  - or upgrade your CMake version to >= 3.14 to allow automatic fetching\n")
   else()
     message(STATUS "JRL cmakemodules not found. Let's fetch it.")
     include(FetchContent)
-    FetchContent_Declare(
-      "jrl-cmakemodules"
-      GIT_REPOSITORY "https://github.com/jrl-umi3218/jrl-cmakemodules.git")
+    FetchContent_Declare("jrl-cmakemodules"
+                         GIT_REPOSITORY "https://github.com/jrl-umi3218/jrl-cmakemodules.git")
     FetchContent_MakeAvailable("jrl-cmakemodules")
     FetchContent_GetProperties("jrl-cmakemodules" SOURCE_DIR JRL_CMAKE_MODULES)
   endif()
@@ -74,23 +72,19 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
       Release
       CACHE STRING "Choose the type of build." FORCE)
   # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
-                                               "MinSizeRel" "RelWithDebInfo")
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel"
+                                               "RelWithDebInfo")
 endif()
 
 # --- OPTIONS ----------------------------------------
-option(BUILD_WITH_VERSION_SUFFIX
-       "Build libraries with version appended to suffix" OFF)
-option(ENABLE_TEMPLATE_INSTANTIATION
-       "Template instantiation of the main library" ON)
+option(BUILD_WITH_VERSION_SUFFIX "Build libraries with version appended to suffix" OFF)
+option(ENABLE_TEMPLATE_INSTANTIATION "Template instantiation of the main library" ON)
 
 # --- OPTIONAL DEPENDENCIES -------------------------
 option(INITIALIZE_WITH_NAN "Initialize Eigen entries with NaN" OFF)
-option(CHECK_RUNTIME_MALLOC
-       "Check if some memory allocations are performed at runtime" OFF)
+option(CHECK_RUNTIME_MALLOC "Check if some memory allocations are performed at runtime" OFF)
 
-# Variable containing all the cflags definition relative to optional
-# dependencies and options
+# Variable containing all the cflags definition relative to optional dependencies and options
 set(CFLAGS_DEPENDENCIES)
 
 if(INITIALIZE_WITH_NAN)
@@ -116,10 +110,8 @@ endmacro()
 # ----------------------------------------------------
 # --- DEPENDENCIES -----------------------------------
 # ----------------------------------------------------
-add_project_dependency(Eigen3 3.4.0 REQUIRED PKG_CONFIG_REQUIRES
-                       "eigen3 >= 3.4.0")
-add_project_dependency(pinocchio REQUIRED PKG_CONFIG_REQUIRES
-                       "pinocchio >= 3.0.0")
+add_project_dependency(Eigen3 3.4.0 REQUIRED PKG_CONFIG_REQUIRES "eigen3 >= 3.4.0")
+add_project_dependency(pinocchio REQUIRED PKG_CONFIG_REQUIRES "pinocchio >= 3.0.0")
 
 set_boost_default_options()
 export_boost_default_options()
@@ -141,15 +133,13 @@ set(LIB_HEADERS
     ${LIB_HEADER_DIR}/task-solver-base.hpp)
 set(LIB_TEMPLATE_INSTANTIATION_HEADERS
     ${LIB_HEADER_DIR}/loik-loid.txx ${LIB_HEADER_DIR}/loik-loid-optimized.txx
-    ${LIB_HEADER_DIR}/loik-loid-data.txx
-    ${LIB_HEADER_DIR}/loik-loid-data-optimized.txx)
+    ${LIB_HEADER_DIR}/loik-loid-data.txx ${LIB_HEADER_DIR}/loik-loid-data-optimized.txx)
 
 set(LIB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(LIB_SOURCES)
 set(LIB_TEMPLATE_INSTANTIATION_SOURCES
     ${LIB_SOURCE_DIR}/loik-loid.cpp ${LIB_SOURCE_DIR}/loik-loid-optimized.cpp
-    ${LIB_SOURCE_DIR}/loik-loid-data.cpp
-    ${LIB_SOURCE_DIR}/loik-loid-data-optimized.cpp)
+    ${LIB_SOURCE_DIR}/loik-loid-data.cpp ${LIB_SOURCE_DIR}/loik-loid-data-optimized.cpp)
 
 if(ENABLE_TEMPLATE_INSTANTIATION)
   list(APPEND LIB_HEADERS ${LIB_TEMPLATE_INSTANTIATION_HEADERS})
@@ -183,8 +173,8 @@ function(create_library)
                VERSION ${PROJECT_VERSION})
 
   cxx_flags_by_compiler_frontend(MSVC "NOMINMAX" OUTPUT PUBLIC_DEFINITIONS)
-  target_compile_definitions(
-    ${PROJECT_NAME} PUBLIC ${CURRENT_COMPILE_DEFINITIONS} ${PUBLIC_DEFINITIONS})
+  target_compile_definitions(${PROJECT_NAME} PUBLIC ${CURRENT_COMPILE_DEFINITIONS}
+                                                    ${PUBLIC_DEFINITIONS})
 
   if(BUILD_LIBRARY_WITH_VERSION_SUFFIX)
     tag_library_version(${PROJECT_NAME})
@@ -194,10 +184,12 @@ function(create_library)
   target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen)
   target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost)
 
-  target_include_directories(${PROJECT_NAME}
-                             PUBLIC $<INSTALL_INTERFACE:include>)
+  target_include_directories(${PROJECT_NAME} PUBLIC $<INSTALL_INTERFACE:include>)
 
-  cxx_flags_by_compiler_frontend(MSVC "/bigobj" OUTPUT PUBLIC_OPTIONS FILTER)
+  cxx_flags_by_compiler_frontend(
+    MSVC "/bigobj"
+    OUTPUT PUBLIC_OPTIONS
+    FILTER)
   target_compile_options(${PROJECT_NAME} PUBLIC ${PUBLIC_OPTIONS})
 endfunction()
 
