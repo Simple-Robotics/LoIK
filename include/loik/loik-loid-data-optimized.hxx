@@ -11,6 +11,8 @@
 #include <pinocchio/spatial/fwd.hpp>
 #include <pinocchio/utils/string-generator.hpp>
 
+#include <numeric>
+
 namespace loik
 {
 

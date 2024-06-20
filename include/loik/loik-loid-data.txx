@@ -9,9 +9,29 @@
 namespace loik
 {
 
-  extern template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI IkIdDataTpl<
+  extern template LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI IkIdDataTpl<
     pinocchio::context::Scalar,
     pinocchio::context::Options,
-    pinocchio::JointCollectionDefaultTpl>;
+    pinocchio::JointCollectionDefaultTpl>::IkIdDataTpl(const Model &);
+
+  extern template LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI IkIdDataTpl<
+    pinocchio::context::Scalar,
+    pinocchio::context::Options,
+    pinocchio::JointCollectionDefaultTpl>::IkIdDataTpl(const Model &, const int );
+
+  extern template LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI void IkIdDataTpl<
+    pinocchio::context::Scalar,
+    pinocchio::context::Options,
+    pinocchio::JointCollectionDefaultTpl>::Reset(bool);
+
+  extern template LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI void IkIdDataTpl<
+    pinocchio::context::Scalar,
+    pinocchio::context::Options,
+    pinocchio::JointCollectionDefaultTpl>::ResetRecursion();
+
+  extern template LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI void IkIdDataTpl<
+    pinocchio::context::Scalar,
+    pinocchio::context::Options,
+    pinocchio::JointCollectionDefaultTpl>::UpdatePrev();
 
 } // namespace loik
