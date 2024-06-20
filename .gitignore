@@ -7,3 +7,6 @@ coverage*
 .travis
 .vscode*
 *.orig
+# pixi environments
+.pixi
+*.egg-info

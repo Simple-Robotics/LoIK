@@ -238,7 +238,7 @@ namespace loik
     /// \param[in] model The model structure of the rigid body system.
     /// \param[in] eq_c_dim Task Equality constraint dimension.
     ///
-    explicit IkIdDataTpl(const Model & model, const int eq_c_dim);
+    IkIdDataTpl(const Model & model, const int eq_c_dim);
 
     ///
     /// \brief reset all quantities

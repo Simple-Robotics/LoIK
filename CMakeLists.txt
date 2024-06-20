@@ -111,9 +111,10 @@ endmacro()
 add_project_dependency(Eigen3 3.4.0 REQUIRED PKG_CONFIG_REQUIRES "eigen3 >= 3.4.0")
 add_project_dependency(pinocchio REQUIRED PKG_CONFIG_REQUIRES "pinocchio >= 3.0.0")
 
+set(BOOST_REQUIRED_COMPONENTS serialization)
 set_boost_default_options()
 export_boost_default_options()
-add_project_dependency(Boost REQUIRED)
+add_project_dependency(Boost REQUIRED COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
 
 # --- MAIN LIBRARY ----------------------------------------
 set(LIB_HEADER_DIR ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME})
@@ -227,4 +228,5 @@ if(ENABLE_TEMPLATE_INSTANTIATION)
 endif()
 
 pkg_config_append_libs(${PROJECT_NAME})
+pkg_config_append_boost_libs(${BOOST_REQUIRED_COMPONENTS})
 pkg_config_append_cflags("${CFLAGS_DEPENDENCIES}")

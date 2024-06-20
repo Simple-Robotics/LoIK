@@ -8,7 +8,7 @@
 
 namespace loik
 {
-  extern template struct LOIK_EXPLICIT_INSTANTIATION_DEFINITION_DLLAPI FirstOrderLoikOptimizedTpl<
+  extern template struct LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI FirstOrderLoikOptimizedTpl<
     pinocchio::context::Scalar,
     pinocchio::context::Options,
     pinocchio::JointCollectionDefaultTpl>;

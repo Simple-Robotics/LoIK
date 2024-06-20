@@ -281,7 +281,7 @@ namespace loik
     ///
     /// \brief default constructor
     ///
-    IkIdDataTypeOptimizedTpl(){};
+    IkIdDataTypeOptimizedTpl() = default;
 
     ///
     /// \brief construct from pinocchio::ModelTpl
