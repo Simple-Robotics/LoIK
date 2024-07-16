@@ -35,512 +35,966 @@ using MuUpdateStrat = loik::ADMMPenaltyUpdateStrat;
 using FirstOrderLoik = loik::FirstOrderLoikTpl<Scalar>;
 using FirstOrderLoikOptimized = loik::FirstOrderLoikOptimizedTpl<Scalar>;
 
-struct ProblemSetupFixture
+
+boost::test_tools::predicate_result
+check_scalar_abs_or_rel_equal(const Scalar a, const Scalar b, const Scalar tol = 1e-12)
 {
+    bool c_abs = (std::fabs(a - b) < tol);
+    bool c_rel = (std::fabs(a - b) / std::fabs(a) < tol) && 
+                 (std::fabs(a - b) / std::fabs(b) < tol);
 
-  ProblemSetupFixture()
+    // std::cout << "c_abs: " << c_abs << std::endl;
+    // std::cout << "c_rel: " << c_rel << std::endl;
+    // std::cout << "a = " << a << ", b = " << b << ", tol = " << tol << '\n' 
+    //           << "| a - b | = " << std::fabs(a - b) << std::endl;
+    
+  if( !c_abs && !c_rel )
   {
-    // solver instantiation quantities
-    max_iter = 2;
-    tol_abs = 1e-3;
-    tol_rel = 1e-3;
-    tol_primal_inf = 1e-2;
-    tol_dual_inf = 1e-2;
-    rho = 1e-5;
-    mu = 1e-2;
-    mu_equality_scale_factor = 1e4;
-    mu_update_strat = MuUpdateStrat::DEFAULT;
-    num_eq_c = 1;
-    eq_c_dim = 6;
-    warm_start = false;
-    verbose = false;
-    logging = false;
+    boost::test_tools::predicate_result res( false );
 
-    // pinocchio::JointModelFreeFlyerTpl<Scalar> fb_joint_model;
+    res.message() << "Both absolute and relative comparison failed: " << '\n'
+                  << "a = " << a << ", b = " << b << ", tol = " << tol << '\n' 
+                  << "| a - b | = " << std::fabs(a - b) << '\n';
 
-    // build model and data
-    urdf_filename =
-      EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/panda_description/urdf/panda.urdf");
-    pinocchio::urdf::buildModel(urdf_filename, robot_model, false);
-
-    // solve ik quantitites
-    q = pinocchio::neutral(robot_model);
-    q << -2.79684649, -0.55090374, 0.424806, -1.21112304, -0.89856966, 0.79726132, -0.07125267,
-      0.13154589, 0.13171856;
-    H_ref = Mat6x6::Identity();
-    H_ref_inertia = Inertia{H_ref};
-    v_ref = Motion::Zero();
-    active_task_constraint_ids.push_back(static_cast<Index>(robot_model.njoints - 1));
-
-    const Mat6x6 Ai_identity = Mat6x6::Identity();
-    Vec6 bi = Vec6::Zero();
-    bi[2] = 0.5;
-    Ais.push_back(Ai_identity);
-    bis.push_back(bi);
-    bound_magnitude = 4.0;
-    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
-    ub = bound_magnitude * DVec::Ones(robot_model.nv);
+    return res;
   }
+  return true;
+}; // check_scalar_abs_or_rel_equal
 
-  int max_iter;
-  Scalar tol_abs;
-  Scalar tol_rel;
-  Scalar tol_primal_inf;
-  Scalar tol_dual_inf;
-  Scalar rho;
-  Scalar mu;
-  Scalar mu_equality_scale_factor;
-  MuUpdateStrat mu_update_strat;
-  int num_eq_c = 1;
-  int eq_c_dim = 6;
-  bool warm_start = false;
-  bool verbose = false;
-  bool logging = false;
 
-  Model robot_model;
+template<typename T1, typename T2>
+boost::test_tools::predicate_result
+check_eigen_dense_abs_or_rel_equal(const Eigen::DenseBase<T1>& a, const Eigen::DenseBase<T2>& b, 
+                                   const Scalar tol = 1e-14)
+{
+    // when a and b are not close to zero 
+    bool c1 = a.derived().isApprox(b.derived());
 
-  std::string urdf_filename;
+    // when a and b are close to zero, use absolute tol
+    bool c2 = (a.derived() - b.derived()).template lpNorm<Eigen::Infinity>() < tol;
 
-  DVec q;
+    // std::cout << "tolerance tol : " << tol << '\n'
+    //           << "relative tol checking, c1 : " << c1 << '\n' 
+    //           << "absolute tol checking, c2 : " << c2 << '\n'
+    //           << "| a - b |_inf : " << (a.derived() - b.derived()).template lpNorm<Eigen::Infinity>() << '\n';
 
-  Mat6x6 H_ref;
-  Inertia H_ref_inertia;
-  Motion v_ref;
-  std::vector<Index> active_task_constraint_ids;
-  PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais;
-  PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis;
-  Scalar bound_magnitude;
-  DVec lb;
-  DVec ub;
-};
+    if ( !c1 && !c2 ) {
+        boost::test_tools::predicate_result res( false );
+
+        res.message() << "Both absolute and relative comparison failed: " << '\n' 
+                      << "tolerance tol : " << tol << '\n'
+                      << "relative tol checking, c1 : " << c1 << '\n' 
+                      << "absolute tol checking, c2 : " << c2 << '\n'
+                      << "| a - b |_inf : " << (a.derived() - b.derived()).template lpNorm<Eigen::Infinity>() << '\n';
+        return res;
+    }
+
+    return true;
+}; // check_eigen_dense_abs_or_rel_equal
+
+
+
+struct ProblemSetupFixture {
+
+    ProblemSetupFixture(){
+        // solver instantiation quantities
+        max_iter = 2;
+        tol_abs = 1e-3;
+        tol_rel = 1e-3;
+        tol_primal_inf = 1e-2;
+        tol_dual_inf = 1e-2;
+        rho = 1e-5;
+        mu = 1e-2;
+        mu_equality_scale_factor = 1e4;
+        mu_update_strat = MuUpdateStrat::DEFAULT;
+        num_eq_c = 1;
+        eq_c_dim = 6;
+        warm_start = false;
+        verbose = false;
+        logging = false;
+
+        // pinocchio::JointModelFreeFlyerTpl<Scalar> fb_joint_model;
+        
+        // build model and data
+        urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/panda_description/urdf/panda.urdf");
+        // urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/go1_description/urdf/panda.urdf");
+        pinocchio::urdf::buildModel(urdf_filename, robot_model, false);
+
+        
+        // solve ik quantitites
+        q = pinocchio::neutral(robot_model);
+        q << -2.79684649, -0.55090374,  0.424806  , -1.21112304, -0.89856966,
+            0.79726132, -0.07125267,  0.13154589,  0.13171856;
+        H_ref = Mat6x6::Identity();
+        H_ref_inertia = Inertia{H_ref};
+        v_ref = Motion::Zero();
+        active_task_constraint_ids.push_back(static_cast<Index>(robot_model.njoints - 1));
+        
+        const Mat6x6 Ai_identity = Mat6x6::Identity();
+        const Mat6x6 Ai_zero = Mat6x6::Zero();
+        Vec6 bi = Vec6::Zero();
+        bi[2] = 0.5;
+        Ais.push_back(Ai_identity);
+        bis.push_back(bi);
+        bound_magnitude = 4.0;
+        lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+        ub = bound_magnitude * DVec::Ones(robot_model.nv);
+    }
+
+    int max_iter;
+    Scalar tol_abs;
+    Scalar tol_rel;
+    Scalar tol_primal_inf;
+    Scalar tol_dual_inf;
+    Scalar rho;
+    Scalar mu;
+    Scalar mu_equality_scale_factor;
+    MuUpdateStrat mu_update_strat;
+    int num_eq_c = 1;
+    int eq_c_dim = 6;
+    bool warm_start = false;
+    bool verbose = false;
+    bool logging = false;
+
+    Model robot_model;
+    
+    std::string urdf_filename;
+    
+    DVec q;
+
+    Mat6x6 H_ref;
+    Inertia H_ref_inertia;
+    Motion v_ref;
+    std::vector<Index> active_task_constraint_ids;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis;
+    Scalar bound_magnitude;
+    DVec lb;
+    DVec ub;
+
+}; // struct ProblemSetupFixture
+
+
+// Define a global fixture to set the log level
+struct SetLogLevel {
+    SetLogLevel() {
+        boost::unit_test::unit_test_log.set_threshold_level(boost::unit_test::log_messages);
+    }
+}; // struct SetLogLevel
+
+
+// Apply the fixture globally
+BOOST_GLOBAL_FIXTURE(SetLogLevel);
+
 
 // define boost test suite
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
 {
-  max_iter = 200;
-  int max_iter_test = 200;
+    max_iter = 200;
+    int max_iter_test = 200;
+    
+    const Scalar tol_abs_test = 1e-3;
+    const Scalar tol_rel_test = 1e-3;
+    const Scalar tol_primal_inf_test = 1e-2;
+    const Scalar tol_dual_inf_test = 1e-2;
+    const Scalar rho_test = 1e-5;
+    const Scalar mu_test = 1e-2;
+    const Scalar mu_equality_scale_factor_test = 1e4;
+    const MuUpdateStrat mu_update_strat_test = MuUpdateStrat::DEFAULT;
+    int num_eq_c_test = 1;
+    int eq_c_dim_test = 6;
+    bool warm_start_test = false;
+    bool verbose_test = false;
+    bool logging_test = false;
 
-  const Scalar tol_abs_test = 1e-3;
-  const Scalar tol_rel_test = 1e-3;
-  const Scalar tol_primal_inf_test = 1e-2;
-  const Scalar tol_dual_inf_test = 1e-2;
-  const Scalar rho_test = 1e-5;
-  const Scalar mu_test = 1e-2;
-  const Scalar mu_equality_scale_factor_test = 1e4;
-  const MuUpdateStrat mu_update_strat_test = MuUpdateStrat::DEFAULT;
-  int num_eq_c_test = 1;
-  int eq_c_dim_test = 6;
-  bool warm_start_test = false;
-  bool verbose_test = false;
-  bool logging_test = false;
+    // empty robot model
+    Model robot_model_test;
 
-  // empty robot model
-  Model robot_model_test;
+    // pinocchio::JointModelFreeFlyerTpl<Scalar> fb_joint_model;
+    
+    // build model and data
+    const std::string urdf_filename_test = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/example-robot-data/robots/panda_description/urdf/panda.urdf");
+    // const std::string urdf_filename = PINOCCHIO_MODEL_DIR + std::string("/example-robot-data/robots/go1_description/urdf/go1.urdf");
+    pinocchio::urdf::buildModel(urdf_filename_test, robot_model_test, false);
+    
+    // solve ik quantitites
+    DVec q_test = pinocchio::neutral(robot_model);
+    q_test << -2.79684649, -0.55090374,  0.424806  , -1.21112304, -0.89856966,
+        0.79726132, -0.07125267,  0.13154589,  0.13171856;
+    const Mat6x6 H_ref_test = Mat6x6::Identity();
+    const Motion v_ref_test = Motion::Zero();
+    const std::vector<Index> active_task_constraint_ids_test{static_cast<Index>(robot_model_test.njoints - 1)};
+    PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais_test;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis_test;
+    const Mat6x6 Ai_identity_test = Mat6x6::Identity();
+    const Mat6x6 Ai_zero_test = Mat6x6::Zero();
+    Vec6 bi_test = Vec6::Zero();
+    bi_test[2] = 0.5;
+    Ais_test.push_back(Ai_identity_test);
+    bis_test.push_back(bi_test);
+    const Scalar bound_magnitude_test = 4.0;
+    const DVec lb_test = -bound_magnitude_test * DVec::Ones(robot_model_test.nv);
+    const DVec ub_test = bound_magnitude_test * DVec::Ones(robot_model_test.nv);
 
-  // pinocchio::JointModelFreeFlyerTpl<Scalar> fb_joint_model;
+    IkIdData ikid_data_test(robot_model_test, eq_c_dim_test);
 
-  // build model and data
-  const std::string urdf_filename_test =
-    EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/panda_description/urdf/panda.urdf");
-  pinocchio::urdf::buildModel(urdf_filename_test, robot_model_test, false);
+    FirstOrderLoik LoikSolver_test{max_iter_test, tol_abs_test, tol_rel_test, tol_primal_inf_test, tol_dual_inf_test, 
+                              rho_test, mu_test, mu_equality_scale_factor_test, mu_update_strat_test, 
+                              num_eq_c_test, eq_c_dim_test, 
+                              robot_model_test, ikid_data_test, 
+                              warm_start_test, 
+                              verbose_test, logging_test};
 
-  // solve ik quantitites
-  DVec q_test = pinocchio::neutral(robot_model);
-  q_test << -2.79684649, -0.55090374, 0.424806, -1.21112304, -0.89856966, 0.79726132, -0.07125267,
-    0.13154589, 0.13171856;
-  const Mat6x6 H_ref_test = Mat6x6::Identity();
-  const Motion v_ref_test = Motion::Zero();
-  const std::vector<Index> active_task_constraint_ids_test{
-    static_cast<Index>(robot_model_test.njoints - 1)};
-  PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais_test;
-  PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis_test;
-  const Mat6x6 Ai_identity_test = Mat6x6::Identity();
-  Vec6 bi_test = Vec6::Zero();
-  bi_test[2] = 0.5;
-  Ais_test.push_back(Ai_identity_test);
-  bis_test.push_back(bi_test);
-  const Scalar bound_magnitude_test = 4.0;
-  const DVec lb_test = -bound_magnitude_test * DVec::Ones(robot_model_test.nv);
-  const DVec ub_test = bound_magnitude_test * DVec::Ones(robot_model_test.nv);
+    LoikSolver_test.Solve(q_test, H_ref_test, v_ref_test, active_task_constraint_ids_test, Ais_test, bis_test, lb_test, ub_test);
 
-  IkIdData ikid_data_test(robot_model_test, eq_c_dim_test);
+    IkIdData ikid_data(robot_model, eq_c_dim);
+    FirstOrderLoik LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                              rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                              num_eq_c, eq_c_dim, 
+                              robot_model, ikid_data, 
+                              warm_start, 
+                              verbose, logging};
 
-  FirstOrderLoik LoikSolver_test{
-    max_iter_test,        tol_abs_test,    tol_rel_test,  tol_primal_inf_test,
-    tol_dual_inf_test,    rho_test,        mu_test,       mu_equality_scale_factor_test,
-    mu_update_strat_test, num_eq_c_test,   eq_c_dim_test, robot_model_test,
-    ikid_data_test,       warm_start_test, verbose_test,  logging_test};
+    LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
 
-  LoikSolver_test.Solve(
-    q_test, H_ref_test, v_ref_test, active_task_constraint_ids_test, Ais_test, bis_test, lb_test,
-    ub_test);
-
-  IkIdData ikid_data(robot_model, eq_c_dim);
-  FirstOrderLoik LoikSolver{max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-                            tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-                            mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-                            ikid_data,       warm_start, verbose,  logging};
-
-  LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
-
-  BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
-  BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
-  BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
-  BOOST_CHECK(ikid_data_test.His[1].isApprox(ikid_data.His[1]));
-
-  BOOST_CHECK(LoikSolver_test.get_iter() == LoikSolver.get_iter());
-}
-
-BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
-{
-  max_iter = 200;
-  verbose = true;
-
-  // instantiate ground truth solver
-  IkIdData ikid_data(robot_model, eq_c_dim);
-
-  FirstOrderLoik LoikSolver{max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-                            tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-                            mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-                            ikid_data,       warm_start, verbose,  logging};
-
-  // solve using full reset
-  LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
-
-  // instantiate test solver
-  IkIdData ikid_data_test(robot_model, eq_c_dim);
-  FirstOrderLoik LoikSolver_test{max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-                                 tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-                                 mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-                                 ikid_data_test,  warm_start, verbose,  logging};
-
-  // solve with seperate Init and Solve
-  LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
-  LoikSolver_test.Solve();
-
-  BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
-  BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
-  BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
-  BOOST_CHECK(ikid_data_test.His[1].isApprox(ikid_data.His[1]));
-
-  BOOST_CHECK(LoikSolver_test.get_iter() == LoikSolver.get_iter());
-}
-
-BOOST_FIXTURE_TEST_CASE(test_loik_reset, ProblemSetupFixture)
-{
-  max_iter = 4;
-  // verbose = false;
-
-  // instantiate ground truth solver
-  IkIdData ikid_data(robot_model, eq_c_dim);
-
-  FirstOrderLoik LoikSolver{max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-                            tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-                            mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-                            ikid_data,       warm_start, verbose,  logging};
-
-  // solve using full reset
-  LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
-
-  // instantiate test solver
-  IkIdDataOptimized ikid_data_test(robot_model, eq_c_dim);
-  FirstOrderLoikOptimized LoikSolver_test{
-    max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-    tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-    mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-    ikid_data_test,  warm_start, verbose,  logging};
-
-  LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
-
-  // repeatedly call 'Solve()' and check answers against ground truth
-  const int LOOP = 4;
-  SMOOTH(LOOP)
-  {
-    LoikSolver_test.Solve();
 
     BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
     BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
     BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
-    BOOST_CHECK(ikid_data_test.His_aba[1].isApprox(ikid_data.His_aba[1]));
+    BOOST_CHECK(ikid_data_test.His[1].isApprox(ikid_data.His[1]));
 
     BOOST_CHECK(LoikSolver_test.get_iter() == LoikSolver.get_iter());
-  }
-}
 
-BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_timing, ProblemSetupFixture)
+} // test_problem_setup
+
+BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
 {
-  max_iter = 2;
+    max_iter = 200;
+    verbose = true;
+    
+    // instantiate ground truth solver 
+    IkIdData ikid_data(robot_model, eq_c_dim);
 
-  IkIdDataOptimized ikid_data(robot_model, eq_c_dim);
+    FirstOrderLoik LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                              rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                              num_eq_c, eq_c_dim, 
+                              robot_model, ikid_data, 
+                              warm_start, 
+                              verbose, logging};
 
-  FirstOrderLoikOptimized LoikSolver{
-    max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-    tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-    mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-    ikid_data,       warm_start, verbose,  logging};
+    // solve using full reset
+    LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
 
-  PinocchioTicToc timer(PinocchioTicToc::US);
+    // instantiate test solver
+    IkIdData ikid_data_test(robot_model, eq_c_dim);
+    FirstOrderLoik LoikSolver_test{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                              rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                              num_eq_c, eq_c_dim, 
+                              robot_model, ikid_data_test, 
+                              warm_start, 
+                              verbose, logging};
 
-#ifdef NDEBUG
-  const int NBT = 100000;
-// const int NBT = 1;
-#else
-  const int NBT = 100000;
-  std::cout << "(the time score in debug mode is not relevant) " << std::endl;
-#endif
+    // solve with seperate Init and Solve
+    LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    LoikSolver_test.Solve();
 
-  // timer.tic();
-  // SMOOTH(NBT)
-  // {
-  //     LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis,
-  //     lb, ub);
-  // }
-  // std::cout << "LOIK = \t\t\t\t"; timer.toc(std::cout,NBT);
 
-  LoikSolver.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
+    BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
+    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
+    BOOST_CHECK(ikid_data_test.His[1].isApprox(ikid_data.His[1]));
 
-  timer.tic();
-  SMOOTH(NBT)
-  {
-    // LoikSolver.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais,
-    // bis, lb, ub);
-    LoikSolver.Solve();
-  }
-  std::cout << "LOIK = \t\t\t\t";
-  timer.toc(std::cout, NBT);
+    BOOST_CHECK(LoikSolver_test.get_iter() == LoikSolver.get_iter());
+} // test_loik_solve_split
 
-  // std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++" <<
-  // std::endl; LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids,
-  // Ais, bis, lb, ub); std::cout <<
-  // "--------------------------------------------------" << std::endl;
+BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise, ProblemSetupFixture)
+{
 
-  BOOST_CHECK(0 == 0);
-}
+    IkIdData ikid_data(robot_model, eq_c_dim);
+    
+
+    FirstOrderLoik LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                              rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                              num_eq_c, eq_c_dim, 
+                              robot_model, ikid_data, 
+                              warm_start, 
+                              verbose, logging};
+
+
+    IkIdDataOptimized ikid_data_test(robot_model, num_eq_c);
+
+    FirstOrderLoikOptimized LoikSolver_test{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                                            rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                                            num_eq_c, eq_c_dim, 
+                                            robot_model, ikid_data_test, 
+                                            warm_start, 
+                                            verbose, logging};
+                                   
+
+
+    LoikSolver.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+
+
+
+    // fwd pass 1
+    LoikSolver.FwdPass1();
+    LoikSolver_test.FwdPass1();
+
+    for (const auto& idx : ikid_data_test.joint_full_range) {
+        BOOST_CHECK(ikid_data_test.His_aba[idx].isApprox(ikid_data_test.His[idx]));
+        
+        if (idx == (Index)0) {
+            BOOST_CHECK(ikid_data.His[0].isApprox(Mat6x6::Zero()));
+            BOOST_CHECK(ikid_data_test.His[0].isApprox(Mat6x6::Identity()));
+        } else {
+            BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
+        }
+        
+        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
+        BOOST_CHECK((ikid_data_test.pis_aba[idx].toVector()).isApprox(ikid_data_test.pis[idx].toVector()));
+    }
+
+    
+
+    for (const auto& idx : ikid_data_test.joint_range) {
+        const JointModel& jmodel = robot_model.joints[idx];
+        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.R)).isApprox(ikid_data.Ris[idx]));
+        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.r)).isApprox(ikid_data.ris[idx]));
+    }
+
+    // bwd pass 
+    LoikSolver.BwdPass();
+    // LoikSolver_test.BwdPassOptimized();
+    LoikSolver_test.BwdPassOptimizedVisitor();
+
+    for (const auto& idx : ikid_data_test.joint_range) {
+        BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
+        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
+    }
+
+    
+    // fwd pass 2
+    LoikSolver.FwdPass2();
+    LoikSolver_test.FwdPass2OptimizedVisitor();
+
+    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
+
+    for (const auto& idx : ikid_data_test.joint_range) {
+        BOOST_CHECK(ikid_data_test.vis[idx].isApprox(ikid_data.vis[idx]));
+        BOOST_CHECK((ikid_data_test.fis[idx].toVector()).isApprox(ikid_data.fis[idx]));
+    }
+
+
+    // box proj
+    LoikSolver.BoxProj();
+    LoikSolver_test.BoxProj();
+
+    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
+    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
+    BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
+
+
+    // dual update"
+    LoikSolver.DualUpdate();
+    LoikSolver_test.DualUpdate();
+    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
+
+    Index c_vec_id = 0;
+    for (const auto& c_id : active_task_constraint_ids) {
+        BOOST_CHECK(ikid_data_test.yis[c_vec_id].isApprox(ikid_data.yis[c_id]));
+
+        c_vec_id ++;
+    }
+
+    // compute residual 
+    LoikSolver.UpdateQPADMMSolveLoopUtility();
+    LoikSolver.ComputeResiduals();
+    LoikSolver_test.ComputeResiduals();
+
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_primal_residual(), LoikSolver_test.get_primal_residual()));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_primal_residual_vec(), LoikSolver_test.get_primal_residual_vec()));
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_dual_residual(), LoikSolver_test.get_dual_residual()));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec()));
+    
+    // check convergence
+    LoikSolver.CheckConvergence();
+    LoikSolver_test.CheckConvergence();
+
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_primal(), LoikSolver_test.get_tol_primal()));
+    BOOST_CHECK(LoikSolver.get_tol_primal() != 0.0);
+    BOOST_CHECK(LoikSolver_test.get_tol_primal() != 0.0);
+
+    
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_dual(), LoikSolver_test.get_tol_dual()));
+    BOOST_CHECK(LoikSolver.get_tol_dual() != 0.0);
+    BOOST_CHECK(LoikSolver_test.get_tol_dual() != 0.0);
+
+
+    BOOST_CHECK(LoikSolver.get_convergence_status() == LoikSolver_test.get_convergence_status());
+
+
+    // check feasibility
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_fis_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(6 * (robot_model.njoints - 1), 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_yis_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(2 * 6 * (robot_model.njoints - 1), robot_model.nv)).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_w_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_ub_qp_T_delta_y_qp_plus(), LoikSolver_test.get_ub_qp_T_delta_y_qp_plus())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_lb_qp_T_delta_y_qp_minus(), LoikSolver_test.get_lb_qp_T_delta_y_qp_minus())
+    );
+    
+    LoikSolver.CheckFeasibility();
+    LoikSolver_test.CheckFeasibility();
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_1() == LoikSolver_test.get_primal_infeasibility_cond_1());
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_2() == LoikSolver_test.get_primal_infeasibility_cond_2());
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_status() == LoikSolver_test.get_primal_infeasibility_status());
+    
+
+    // UpdateMu
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_mu(), LoikSolver_test.get_mu(), 1e-14));
+    LoikSolver.UpdateMu();
+    LoikSolver_test.UpdateMu();
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_mu(), LoikSolver_test.get_mu(), 1e-14));
+    
+
+    // Sanity Check
+    for (const auto& idx : ikid_data_test.joint_range) {
+        
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.vis[idx].toVector(), ikid_data.vis[idx].toVector()));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.fis[idx].toVector(), ikid_data.fis[idx]));
+
+    }
+
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.nu, ikid_data.nu));        
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.z, ikid_data.z));        
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.w, ikid_data.w));        
+
+    c_vec_id = 0;
+    for (const auto& c_id : active_task_constraint_ids) {
+
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.yis[c_vec_id], ikid_data.yis[c_id]));        
+
+        c_vec_id ++;
+    }
+
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_primal_residual_vec(), LoikSolver_test.get_primal_residual_vec()));
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_primal_residual(), LoikSolver_test.get_primal_residual()));
+    
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_dual_residual(),  LoikSolver_test.get_dual_residual()));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec()));
+
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_primal(), LoikSolver_test.get_tol_primal()));
+    BOOST_CHECK(LoikSolver.get_tol_primal() != 0.0);
+    BOOST_CHECK(LoikSolver_test.get_tol_primal() != 0.0);
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_dual(), LoikSolver_test.get_tol_dual()));
+    BOOST_CHECK(LoikSolver.get_tol_dual() != 0.0);
+    BOOST_CHECK(LoikSolver_test.get_tol_dual() != 0.0);
+    BOOST_CHECK(LoikSolver.get_convergence_status() == LoikSolver_test.get_convergence_status());
+
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_fis_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(6 * (robot_model.njoints - 1), 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_yis_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(2 * 6 * (robot_model.njoints - 1), robot_model.nv)).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_w_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_ub_qp_T_delta_y_qp_plus(), LoikSolver_test.get_ub_qp_T_delta_y_qp_plus())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_lb_qp_T_delta_y_qp_minus(), LoikSolver_test.get_lb_qp_T_delta_y_qp_minus())
+    );
+
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_1() == LoikSolver_test.get_primal_infeasibility_cond_1());
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_2() == LoikSolver_test.get_primal_infeasibility_cond_2());
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_status() == LoikSolver_test.get_primal_infeasibility_status());
+
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_mu(), LoikSolver_test.get_mu()));
+
+
+} // test_1st_order_loik_optimized_correctness_component_wise
+
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupFixture)
 {
+    max_iter = 5;
+    bound_magnitude = 2.0;
 
-  IkIdData ikid_data(robot_model, eq_c_dim);
+    // instantiate ground truth solver 
+    IkIdData ikid_data(robot_model, eq_c_dim);
 
-  FirstOrderLoik LoikSolver{max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-                            tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-                            mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-                            ikid_data,       warm_start, verbose,  logging};
+    FirstOrderLoik LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                              rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                              num_eq_c, eq_c_dim, 
+                              robot_model, ikid_data, 
+                              warm_start, 
+                              verbose, logging};
 
-  // LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb,
-  // ub);
+    // solve using full reset
+    LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
 
-  IkIdDataOptimized ikid_data_test(robot_model, eq_c_dim);
+    // instantiate test solver
+    IkIdDataOptimized ikid_data_test(robot_model, num_eq_c);
+    FirstOrderLoikOptimized LoikSolver_test{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                                            rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                                            num_eq_c, eq_c_dim, 
+                                            robot_model, ikid_data_test, 
+                                            warm_start, 
+                                            verbose, logging};
 
-  FirstOrderLoikOptimized LoikSolver_test{
-    max_iter,        tol_abs,    tol_rel,  tol_primal_inf,
-    tol_dual_inf,    rho,        mu,       mu_equality_scale_factor,
-    mu_update_strat, num_eq_c,   eq_c_dim, robot_model,
-    ikid_data_test,  warm_start, verbose,  logging};
+    LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
 
-  // PinocchioTicToc timer_test(PinocchioTicToc::US);
 
-  LoikSolver.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
-  LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    // repeatedly call 'Solve()' and check answers against ground truth
+    const int LOOP = 1;
+    SMOOTH(LOOP)
+    {
+        LoikSolver_test.Solve();
 
-  // fwd pass 1
-  LoikSolver.FwdPass1();
-  LoikSolver_test.FwdPass1();
+        for (const auto& idx : ikid_data_test.joint_range) {
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx]));
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx]));
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.vis[idx].toVector(), ikid_data.vis[idx].toVector()));
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.fis[idx].toVector(), ikid_data.fis[idx]));
 
-  for (const auto & idx : ikid_data_test.joint_full_range)
-  {
-    BOOST_CHECK(ikid_data_test.His_aba[idx].isApprox(ikid_data_test.His[idx]));
-    BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
-    BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
-    BOOST_CHECK(
-      (ikid_data_test.pis_aba[idx].toVector()).isApprox(ikid_data_test.pis[idx].toVector()));
-  }
+        }
 
-  // test case for R against Ris, and r against ris
-  //  std::cout << "ikid_data_test.R: " << std::endl;
-  //  std::cout << ikid_data_test.R << std::endl;
-  //  std::cout << "ikid_data.Ris: " << std::endl;
-  //  for (const auto& idx : ikid_data_test.joint_full_range) {
-  //      std::cout << ikid_data.Ris[idx] << std::endl;
-  //  }
-  for (const auto & idx : ikid_data_test.joint_range)
-  {
-    // std::cout << "idx: " << idx << std::endl;
-    const JointModel & jmodel = robot_model.joints[idx];
-    // std::cout << "jmodel.idx_v: " << jmodel.idx_v() << std::endl;
-    // std::cout << "jmodel.nv: " << jmodel.nv() << std::endl;
-    // std::cout << "ikid_data_test.R segment: " <<
-    // ikid_data_test.R.segment(jmodel.idx_v(), jmodel.nv()) << std::endl;
-    BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.R)).isApprox(ikid_data.Ris[idx]));
-    // std::cout << "ikid_data_test.R: " <<
-    // jmodel.jointVelocitySelector(ikid_data_test.R) << std::endl; std::cout <<
-    // "ikid_data.Ris: " << ikid_data.Ris[idx] << std::endl;
-    BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.r)).isApprox(ikid_data.ris[idx]));
-  }
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.nu, ikid_data.nu));        
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.z, ikid_data.z));        
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.w, ikid_data.w));        
 
-  // bwd pass
-  LoikSolver.BwdPass();
-  // LoikSolver_test.BwdPassOptimized();
-  LoikSolver_test.BwdPassOptimizedVisitor();
+        Index c_vec_id = 0;
+        for (const auto& c_id : active_task_constraint_ids) {
 
-  for (const auto & idx : ikid_data_test.joint_range)
-  {
-    BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
-    // std::cout << "ikid_data_test.His: " << ikid_data_test.His[idx] <<
-    // std::endl; std::cout << "ikid_data.His: " << ikid_data.His[idx] <<
-    // std::endl;
-    BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
-    // std::cout << "ikid_data_test.pis: " << ikid_data_test.pis[idx].toVector()
-    // << std::endl; std::cout << "ikid_data.pis: " << ikid_data.pis[idx] <<
-    // std::endl;
-  }
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.yis[c_vec_id], ikid_data.yis[c_id]));        
 
-  // BOOST_CHECK(ikid_data_test.His[test_id].isApprox(ikid_data.His[test_id]));
-  // //
-  // BOOST_CHECK(ikid_data_test.His_aba[test_id].isApprox(ikid_data_test.His[test_id]));
-  // std::cout << "ikid_data.His " << std::endl;
-  // std::cout << ikid_data.His[test_id] << std::endl;
-  // std::cout << "ikid_data_test.His: " << std::endl;
-  // std::cout << ikid_data_test.His[test_id] << std::endl;
-  // std::cout << "ikid_data_test.His_aba: " << std::endl;
-  // std::cout << ikid_data_test.His_aba[test_id] << std::endl;
-  // std::cout << "His diff inf norm: " << std::endl;
-  // std::cout << (ikid_data_test.His[test_id] -
-  // ikid_data.His[test_id]).template lpNorm<Eigen::Infinity>() << std::endl;
-  // std::cout << "His and His_aba diff inf norm: " << std::endl;
-  // std::cout << (ikid_data_test.His_aba[test_id] -
-  // ikid_data_test.His[test_id]).template lpNorm<Eigen::Infinity>() <<
-  // std::endl;
+            c_vec_id ++;
+        }
 
-  // BOOST_CHECK((ikid_data_test.pis[test_id].toVector()).isApprox(ikid_data.pis[test_id]));
-  // std::cout << "ikid_data.pis: " << std::endl;
-  // std::cout << ikid_data.pis[test_id] << std::endl;
-  // std::cout << "ikid_data_test.pis: " << std::endl;
-  // std::cout << ikid_data_test.pis[test_id].toVector() << std::endl;
-  // std::cout << "pis diff inf norm: " << std::endl;
-  // std::cout << (ikid_data_test.pis[test_id].toVector() -
-  // ikid_data.pis[test_id]).template lpNorm<Eigen::Infinity>() << std::endl;
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_primal_residual_vec(), LoikSolver_test.get_primal_residual_vec()));
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_primal_residual(), LoikSolver_test.get_primal_residual()));
+        
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_dual_residual(),  LoikSolver_test.get_dual_residual()));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec(), 1e-12));
 
-  // fwd pass 2
-  LoikSolver.FwdPass2();
-  // LoikSolver_test.FwdPass2Optimized();
-  LoikSolver_test.FwdPass2OptimizedVisitor();
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_primal(), LoikSolver_test.get_tol_primal()));
+        BOOST_CHECK(LoikSolver.get_tol_primal() != 0.0);
+        BOOST_CHECK(LoikSolver_test.get_tol_primal() != 0.0);
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_dual(), LoikSolver_test.get_tol_dual()));
+        BOOST_CHECK(LoikSolver.get_tol_dual() != 0.0);
+        BOOST_CHECK(LoikSolver_test.get_tol_dual() != 0.0);
+        BOOST_CHECK(LoikSolver.get_convergence_status() == LoikSolver_test.get_convergence_status());
 
-  BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
+        
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                          ikid_data_test.delta_fis_inf_norm)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(6 * (robot_model.njoints - 1), 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                          ikid_data_test.delta_yis_inf_norm)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(2 * 6 * (robot_model.njoints - 1), robot_model.nv)).template lpNorm<Eigen::Infinity>(), 
+                                          ikid_data_test.delta_w_inf_norm)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm(), 1e-12)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_ub_qp_T_delta_y_qp_plus(), LoikSolver_test.get_ub_qp_T_delta_y_qp_plus())
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_lb_qp_T_delta_y_qp_minus(), LoikSolver_test.get_lb_qp_T_delta_y_qp_minus())
+        );
 
-  for (const auto & idx : ikid_data_test.joint_range)
-  {
-    BOOST_CHECK(ikid_data_test.vis[idx].isApprox(ikid_data.vis[idx]));
-    BOOST_CHECK((ikid_data_test.fis[idx].toVector()).isApprox(ikid_data.fis[idx]));
-  }
-  BOOST_CHECK(ikid_data_test.vis[1].isApprox(ikid_data.vis[1]));
-  BOOST_CHECK(ikid_data_test.vis[4].isApprox(ikid_data.vis[4]));
-  BOOST_CHECK(ikid_data_test.vis[7].isApprox(ikid_data.vis[7]));
-  BOOST_CHECK((ikid_data_test.fis[1].toVector()).isApprox(ikid_data.fis[1]));
-  BOOST_CHECK((ikid_data_test.fis[4].toVector()).isApprox(ikid_data.fis[4]));
-  BOOST_CHECK((ikid_data_test.fis[7].toVector()).isApprox(ikid_data.fis[7]));
 
-  // box proj
-  LoikSolver.BoxProj();
-  LoikSolver_test.BoxProj();
+        BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_1() == LoikSolver_test.get_primal_infeasibility_cond_1());
+        BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_2() == LoikSolver_test.get_primal_infeasibility_cond_2());
+        BOOST_CHECK(LoikSolver.get_primal_infeasibility_status() == LoikSolver_test.get_primal_infeasibility_status());
 
-  BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
-  BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
-  BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_mu(), LoikSolver_test.get_mu()));
+    }
 
-  // dual update
-  LoikSolver.DualUpdate();
-  LoikSolver_test.DualUpdate();
-  BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
-  for (const auto & idx : ikid_data_test.joint_range)
-  {
-    // std::cout << "ikid_data_test.yis: " << ikid_data_test.yis[idx] <<
-    // std::endl; std::cout << "ikid_data.yis: " << ikid_data.yis[idx] <<
-    // std::endl;
-    BOOST_CHECK(ikid_data_test.yis[idx].isApprox(ikid_data.yis[idx]));
-  }
+} // test_1st_order_loik_optimized_correctness 
 
-  // compute residual
-  LoikSolver.UpdateQPADMMSolveLoopUtility();
-  LoikSolver.ComputeResiduals();
-  LoikSolver_test.ComputeResiduals();
 
-  BOOST_CHECK(LoikSolver.get_primal_residual() == LoikSolver_test.get_primal_residual());
-  BOOST_CHECK(
-    LoikSolver.get_primal_residual_vec().isApprox(LoikSolver_test.get_primal_residual_vec()));
-  BOOST_CHECK(LoikSolver.get_dual_residual() == LoikSolver_test.get_dual_residual());
-  BOOST_CHECK(LoikSolver.get_dual_residual_vec().isApprox(LoikSolver_test.get_dual_residual_vec()));
-  // std::cout << "primal residual from LoikSolver: " << LoikSolver.get_primal_residual() <<
-  // std::endl; std::cout << "primal residual from LoikSolver_test: " <<
-  // LoikSolver_test.get_primal_residual()
-  //           << std::endl;
-  // std::cout << "dual residual from LoikSolver: " << LoikSolver.get_dual_residual() << std::endl;
-  // std::cout << "dual residual from LoikSolver_test: " << LoikSolver_test.get_dual_residual()
-  //           << std::endl;
-  // std::cout << "dual residual v from LoikSolver: " << LoikSolver.get_dual_residual_v() <<
-  // std::endl; std::cout << "dual residual v from LoikSolver_test: " <<
-  // LoikSolver_test.get_dual_residual_v()
-  //           << std::endl;
-  // std::cout << "dual residual nu from LoikSolver: " << LoikSolver.get_dual_residual_nu()
-  //           << std::endl;
-  // std::cout << "dual residual nu from LoikSolver_test: " <<
-  // LoikSolver_test.get_dual_residual_nu()
-  //           << std::endl;
-  // std::cout << "dual residual vec from LoikSolver: "
-  //           << LoikSolver.get_dual_residual_vec().transpose() << std::endl;
-  // std::cout << "dual residual vec from LoikSolver_test: "
-  //           << LoikSolver_test.get_dual_residual_vec().transpose() << std::endl;
-}
-
-BOOST_AUTO_TEST_CASE(test_pinocchio_types)
+BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, ProblemSetupFixture)
 {
-  pinocchio::SE3 liMi = pinocchio::SE3::Random();
-  pinocchio::Force f = pinocchio::Force::Random();
+    max_iter = 2;
+    bound_magnitude = 4.0;
 
-  BOOST_CHECK(
-    (liMi.actInv(f).toVector()).isApprox(liMi.toActionMatrix().transpose() * f.toVector()));
+    BOOST_CHECK(warm_start == false);
 
-  Mat6x6 R6 = Vec6::Random().asDiagonal();
-  Mat6x6 RtR = R6.transpose() + R6;
+    // instantiate ground truth solver 
+    IkIdData ikid_data(robot_model, eq_c_dim);
 
-  // pinocchio::check_expression_if_real()
+    FirstOrderLoik LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                              rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                              num_eq_c, eq_c_dim, 
+                              robot_model, ikid_data, 
+                              warm_start, 
+                              verbose, logging};
 
-  // std::cout << "inf norm 'RtR - RtR.transpose()' = " << (RtR -
-  // RtR.transpose()). template lpNorm<Eigen::Infinity>() << std::endl;
-  // BOOST_CHECK((RtR - RtR.transpose()).isApprox(Mat6x6::Zero()));
+    // solve using full reset
+    LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
 
-  // Eigen::SelfAdjointEigenSolver<Mat6x6> eigensolver(RtR);
-  // if (eigensolver.info() != Eigen::Success) {
-  //     throw std::runtime_error("Eigen decomposition failed.");
-  // }
+    // instantiate test solver
+    IkIdDataOptimized ikid_data_test(robot_model, num_eq_c);
+    FirstOrderLoikOptimized LoikSolver_test{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                                            rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                                            num_eq_c, eq_c_dim, 
+                                            robot_model, ikid_data_test, 
+                                            warm_start, 
+                                            verbose, logging};
 
-  // Vec6 eigenvalues = eigensolver.eigenvalues();
-  // Mat6x6 eigenvectors = eigensolver.eigenvectors();
+    LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
 
-  // // Ensure all eigenvalues are positive
-  // for (int i = 0; i < eigenvalues.size(); ++i) {
-  //     if (eigenvalues(i) < 1e-10) {
-  //         eigenvalues(i) = 1e-8; // Make small or negative eigenvalues
-  //         positive
-  //     }
-  // }
 
-  // Mat6x6 D = eigenvalues.asDiagonal();
-  // Mat6x6 RtR_pd = eigenvectors * D * eigenvectors.transpose();
+    // call 'Solve()' once 
+    LoikSolver_test.Solve();
 
-  Vec6 v6r = Vec6::Random();
 
-  Inertia RtR_inertia = Inertia{RtR};
-  Motion v6r_motion = Motion{v6r};
+    LoikSolver.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    ikid_data.UpdatePrev();
 
-  BOOST_CHECK(RtR.isApprox(RtR_inertia.matrix()));
+    // reset IkIdData recursion quantites
+    ikid_data_test.ResetRecursion();
 
-  Force f_test = RtR_inertia * v6r_motion;
-  Vec6 f_test_vec = RtR_inertia.matrix() * v6r_motion.toVector();
+    // wipe solver quantities'
+    LoikSolver_test.ResetSolver();
 
-  BOOST_CHECK(f_test.toVector().isApprox(f_test_vec));
-}
+    // solver main loop starts here
+    ikid_data_test.UpdatePrev();
+
+    ikid_data_test.ResetInfNorms();
+
+    // fwd pass 1
+    LoikSolver.FwdPass1();
+    LoikSolver_test.FwdPass1();
+
+    for (const auto& idx : ikid_data_test.joint_range) {
+        BOOST_CHECK(ikid_data_test.His_aba[idx].isApprox(ikid_data_test.His[idx]));
+        
+        BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
+        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
+        BOOST_CHECK((ikid_data_test.pis_aba[idx].toVector()).isApprox(ikid_data_test.pis[idx].toVector()));
+    }
+
+    
+    for (const auto& idx : ikid_data_test.joint_range) {
+        const JointModel& jmodel = robot_model.joints[idx];
+        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.R)).isApprox(ikid_data.Ris[idx]));
+        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.r)).isApprox(ikid_data.ris[idx]));
+    }
+
+    // bwd pass 1
+    LoikSolver.BwdPass();
+    LoikSolver_test.BwdPassOptimizedVisitor();
+
+    for (const auto& idx : ikid_data_test.joint_range) {
+        BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
+        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
+        
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx]));
+    }
+
+    
+    // fwd pass 2
+    LoikSolver.FwdPass2();
+    LoikSolver_test.FwdPass2OptimizedVisitor();
+
+    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
+
+    for (const auto& idx : ikid_data_test.joint_range) {
+        BOOST_CHECK(ikid_data_test.vis[idx].isApprox(ikid_data.vis[idx]));
+        BOOST_CHECK((ikid_data_test.fis[idx].toVector()).isApprox(ikid_data.fis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.vis[idx].toVector(), ikid_data.vis[idx].toVector()));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.fis[idx].toVector(), ikid_data.fis[idx]));
+
+    }
+
+    // box proj
+    LoikSolver.BoxProj();
+    LoikSolver_test.BoxProj();
+
+    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
+    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
+    BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
+
+
+    // dual update"
+    LoikSolver.DualUpdate();
+    LoikSolver_test.DualUpdate();
+    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
+
+    Index c_vec_id = 0;
+    for (const auto& c_id : active_task_constraint_ids) {
+        BOOST_CHECK(ikid_data_test.yis[c_vec_id].isApprox(ikid_data.yis[c_id]));
+
+        c_vec_id ++;
+    }
+
+    // compute residual 
+    LoikSolver.UpdateQPADMMSolveLoopUtility();
+    LoikSolver.ComputeResiduals();
+    LoikSolver_test.ComputeResiduals();
+
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_primal_residual(), LoikSolver_test.get_primal_residual()));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_primal_residual_vec(), LoikSolver_test.get_primal_residual_vec()));
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_dual_residual(), LoikSolver_test.get_dual_residual()));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec()));
+
+    // check convergence
+    LoikSolver.CheckConvergence();
+    LoikSolver_test.CheckConvergence();
+
+
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_primal(), LoikSolver_test.get_tol_primal()));
+    BOOST_CHECK(LoikSolver.get_tol_primal() != 0.0);
+    BOOST_CHECK(LoikSolver_test.get_tol_primal() != 0.0);
+
+
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_dual(), LoikSolver_test.get_tol_dual()));
+    BOOST_CHECK(LoikSolver.get_tol_dual() != 0.0);
+    BOOST_CHECK(LoikSolver_test.get_tol_dual() != 0.0);
+
+    BOOST_CHECK(LoikSolver.get_convergence_status() == LoikSolver_test.get_convergence_status());
+
+
+    // check feasibility
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_fis_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(6 * (robot_model.njoints - 1), 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_yis_inf_norm)
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(2 * 6 * (robot_model.njoints - 1), robot_model.nv)).template lpNorm<Eigen::Infinity>(), 
+                                        ikid_data_test.delta_w_inf_norm)
+    );
+    
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm())
+    );
+    
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_ub_qp_T_delta_y_qp_plus(), LoikSolver_test.get_ub_qp_T_delta_y_qp_plus())
+    );
+    BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_lb_qp_T_delta_y_qp_minus(), LoikSolver_test.get_lb_qp_T_delta_y_qp_minus())
+    );
+    
+
+    LoikSolver.CheckFeasibility();
+    LoikSolver_test.CheckFeasibility();
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_1() == LoikSolver_test.get_primal_infeasibility_cond_1());
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_2() == LoikSolver_test.get_primal_infeasibility_cond_2());
+    BOOST_CHECK(LoikSolver.get_primal_infeasibility_status() == LoikSolver_test.get_primal_infeasibility_status());
+    
+    // UpdateMu
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_mu(), LoikSolver_test.get_mu(), 1e-14));
+    LoikSolver.UpdateMu();
+    LoikSolver_test.UpdateMu();
+    BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_mu(), LoikSolver_test.get_mu(), 1e-14));
+
+    // Check iteration count
+    BOOST_CHECK(LoikSolver.get_iter() == LoikSolver_test.get_iter());
+    
+
+} // test_1st_order_loik_optimized_reset_component_wise
+
+
+BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture)
+{
+    max_iter = 5;
+    bound_magnitude = 4.0;
+
+    // instantiate ground truth solver 
+    IkIdData ikid_data(robot_model, eq_c_dim);
+
+    FirstOrderLoik LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                              rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                              num_eq_c, eq_c_dim, 
+                              robot_model, ikid_data, 
+                              warm_start, 
+                              verbose, logging};
+
+    // solve using full reset
+    LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+
+    // instantiate test solver
+    IkIdDataOptimized ikid_data_test(robot_model, num_eq_c);
+    FirstOrderLoikOptimized LoikSolver_test{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                                            rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                                            num_eq_c, eq_c_dim, 
+                                            robot_model, ikid_data_test, 
+                                            warm_start, 
+                                            verbose, logging};
+
+    LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+
+
+    // repeatedly call 'Solve()' and check answers against ground truth
+    const int LOOP = 5;
+    SMOOTH(LOOP)
+    {
+        LoikSolver_test.Solve();
+        
+        for (const auto& idx : ikid_data_test.joint_range) {
+            
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx]));
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx]));
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.vis[idx].toVector(), ikid_data.vis[idx].toVector()));
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.fis[idx].toVector(), ikid_data.fis[idx]));
+
+        }
+
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.nu, ikid_data.nu));        
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.z, ikid_data.z));        
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.w, ikid_data.w));        
+
+        Index c_vec_id = 0;
+        for (const auto& c_id : active_task_constraint_ids) {
+
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.yis[c_vec_id], ikid_data.yis[c_id]));        
+
+            c_vec_id ++;
+        }
+
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_primal_residual_vec(), LoikSolver_test.get_primal_residual_vec()));
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_primal_residual(), LoikSolver_test.get_primal_residual()));
+        
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_dual_residual(),  LoikSolver_test.get_dual_residual()));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec(), 1e-12));
+
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_primal(), LoikSolver_test.get_tol_primal()));
+        BOOST_CHECK(LoikSolver.get_tol_primal() != 0.0);
+        BOOST_CHECK(LoikSolver_test.get_tol_primal() != 0.0);
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_dual(), LoikSolver_test.get_tol_dual()));
+        BOOST_CHECK(LoikSolver.get_tol_dual() != 0.0);
+        BOOST_CHECK(LoikSolver_test.get_tol_dual() != 0.0);
+        BOOST_CHECK(LoikSolver.get_convergence_status() == LoikSolver_test.get_convergence_status());
+
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                          ikid_data_test.delta_fis_inf_norm)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(6 * (robot_model.njoints - 1), 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
+                                          ikid_data_test.delta_yis_inf_norm)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(2 * 6 * (robot_model.njoints - 1), robot_model.nv)).template lpNorm<Eigen::Infinity>(), 
+                                          ikid_data_test.delta_w_inf_norm)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm(), 1e-12)
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_ub_qp_T_delta_y_qp_plus(), LoikSolver_test.get_ub_qp_T_delta_y_qp_plus())
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_lb_qp_T_delta_y_qp_minus(), LoikSolver_test.get_lb_qp_T_delta_y_qp_minus())
+        );
+
+        BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_1() == LoikSolver_test.get_primal_infeasibility_cond_1());
+        BOOST_CHECK(LoikSolver.get_primal_infeasibility_cond_2() == LoikSolver_test.get_primal_infeasibility_cond_2());
+        BOOST_CHECK(LoikSolver.get_primal_infeasibility_status() == LoikSolver_test.get_primal_infeasibility_status());
+
+        BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_mu(), LoikSolver_test.get_mu()));
+
+        BOOST_CHECK(LoikSolver.get_iter() == LoikSolver_test.get_iter());
+    }
+
+} // test_1st_order_loik_optimized_reset
+
+
+BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_timing, ProblemSetupFixture)
+{
+    max_iter = 5;
+    
+    IkIdDataOptimized ikid_data(robot_model, num_eq_c);
+
+    FirstOrderLoikOptimized LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                                       rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                                       num_eq_c, eq_c_dim, 
+                                       robot_model, ikid_data, 
+                                       warm_start, 
+                                       verbose, logging};
+    
+    PinocchioTicToc timer(PinocchioTicToc::US);
+
+    #ifdef NDEBUG
+    const int NBT = 100000;
+    // const int NBT = 1;
+    #else
+        const int NBT = 100000;
+        std::cout << "(the time score in debug mode is not relevant) " << std::endl;
+    #endif
+
+  
+    LoikSolver.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    LoikSolver.Solve();
+    int iter_took_to_solver = LoikSolver.get_iter();
+    std::cout << "Timing over " << iter_took_to_solver << " iterations for solver to solve" << std::endl;
+
+    timer.tic();
+    SMOOTH(NBT)
+    {
+        LoikSolver.Solve();
+    }
+    std::cout << "LOIK = \t\t\t\t"; timer.toc(std::cout,NBT);
+
+    BOOST_CHECK(LoikSolver.get_iter() == iter_took_to_solver);
+
+
+    BOOST_CHECK(0 == 0);
+} // test_1st_order_loik_timing
+
 
 BOOST_AUTO_TEST_SUITE_END()
