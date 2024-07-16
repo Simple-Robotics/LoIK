@@ -1,9 +1,9 @@
 add_project_dependency(Boost COMPONENTS unit_test_framework REQUIRED)
 
-find_package(example-robot-data REQUIRED)
+add_project_private_dependency(example-robot-data REQUIRED)
 
 function(add_loik_test name)
-  set(test_name "test-cpp-${name}")
+  set(test_name "${PROJECT_NAME}-test-cpp-${name}")
   set(test_file ${name}.cpp)
 
   add_unit_test(${test_name} ${test_file})
