@@ -119,6 +119,7 @@ add_project_dependency(Boost REQUIRED COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
 # --- MAIN LIBRARY ----------------------------------------
 set(LIB_HEADER_DIR ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME})
 set(LIB_HEADERS
+    ${LIB_HEADER_DIR}/fwd.hpp
     ${LIB_HEADER_DIR}/ik-id-description.hpp
     ${LIB_HEADER_DIR}/ik-id-description-optimized.hpp
     ${LIB_HEADER_DIR}/loik-loid-data.hpp

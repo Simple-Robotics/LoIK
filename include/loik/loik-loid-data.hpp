@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "fwd.hpp"
 #include "loik/config.hpp"
 
 #include <pinocchio/math/tensor.hpp>
@@ -29,16 +30,16 @@
 #include <cstddef>
 #include <set>
 
-namespace loik
-{
+// namespace loik
+// {
 
-  template<
-    typename _Scalar,
-    int _Options = 0,
-    template<typename S, int O> class JointCollectionTpl = pinocchio::JointCollectionDefaultTpl>
-  struct IkIdDataTpl;
+//   template<
+//     typename _Scalar,
+//     int _Options = 0,
+//     template<typename S, int O> class JointCollectionTpl = pinocchio::JointCollectionDefaultTpl>
+//   struct IkIdDataTpl;
 
-}
+// }
 
 namespace pinocchio
 {

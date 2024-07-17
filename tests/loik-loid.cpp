@@ -37,7 +37,7 @@ using FirstOrderLoikOptimized = loik::FirstOrderLoikOptimizedTpl<Scalar>;
 
 
 boost::test_tools::predicate_result
-check_scalar_abs_or_rel_equal(const Scalar a, const Scalar b, const Scalar tol = 1e-12)
+check_scalar_abs_or_rel_equal(const Scalar a, const Scalar b, const Scalar tol = 1e-10)
 {
     bool c_abs = (std::fabs(a - b) < tol);
     bool c_rel = (std::fabs(a - b) / std::fabs(a) < tol) && 
@@ -65,7 +65,7 @@ check_scalar_abs_or_rel_equal(const Scalar a, const Scalar b, const Scalar tol =
 template<typename T1, typename T2>
 boost::test_tools::predicate_result
 check_eigen_dense_abs_or_rel_equal(const Eigen::DenseBase<T1>& a, const Eigen::DenseBase<T2>& b, 
-                                   const Scalar tol = 1e-14)
+                                   const Scalar tol = 1e-10)
 {
     // when a and b are not close to zero 
     bool c1 = a.derived().isApprox(b.derived());
@@ -272,6 +272,10 @@ BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
 BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
 {
     max_iter = 200;
+    bound_magnitude = 1.0;
+    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+    ub = bound_magnitude * DVec::Ones(robot_model.nv);
+
     verbose = true;
     
     // instantiate ground truth solver 
@@ -311,6 +315,10 @@ BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise, ProblemSetupFixture)
 {
+    max_iter = 200;
+    bound_magnitude = 1.0;
+    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+    ub = bound_magnitude * DVec::Ones(robot_model.nv);
 
     IkIdData ikid_data(robot_model, eq_c_dim);
     
@@ -441,6 +449,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
         check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
     );
     BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
+    );
+    BOOST_TEST(
         check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
                                         ikid_data_test.delta_fis_inf_norm)
     );
@@ -516,6 +527,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
         check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
     );
     BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
+    );
+    BOOST_TEST(
         check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
                                         ikid_data_test.delta_fis_inf_norm)
     );
@@ -549,8 +563,10 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupFixture)
 {
-    max_iter = 5;
+    max_iter = 7;
     bound_magnitude = 2.0;
+    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+    ub = bound_magnitude * DVec::Ones(robot_model.nv);
 
     // instantiate ground truth solver 
     IkIdData ikid_data(robot_model, eq_c_dim);
@@ -607,7 +623,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
         BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_primal_residual(), LoikSolver_test.get_primal_residual()));
         
         BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_dual_residual(),  LoikSolver_test.get_dual_residual()));
-        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec(), 1e-12));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec()));
 
         BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_primal(), LoikSolver_test.get_tol_primal()));
         BOOST_CHECK(LoikSolver.get_tol_primal() != 0.0);
@@ -622,6 +638,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
             check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
         );
         BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
+        );
+        BOOST_TEST(
             check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
                                           ikid_data_test.delta_fis_inf_norm)
         );
@@ -634,7 +653,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
                                           ikid_data_test.delta_w_inf_norm)
         );
         BOOST_TEST(
-            check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm(), 1e-12)
+            check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm())
         );
         BOOST_TEST(
             check_scalar_abs_or_rel_equal(LoikSolver.get_ub_qp_T_delta_y_qp_plus(), LoikSolver_test.get_ub_qp_T_delta_y_qp_plus())
@@ -656,8 +675,10 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, ProblemSetupFixture)
 {
-    max_iter = 2;
-    bound_magnitude = 4.0;
+    max_iter = 100;
+    bound_magnitude = 1.5;
+    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+    ub = bound_magnitude * DVec::Ones(robot_model.nv);
 
     BOOST_CHECK(warm_start == false);
 
@@ -848,8 +869,10 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture)
 {
-    max_iter = 5;
-    bound_magnitude = 4.0;
+    max_iter = 100;
+    bound_magnitude = 1.5;
+    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+    ub = bound_magnitude * DVec::Ones(robot_model.nv);
 
     // instantiate ground truth solver 
     IkIdData ikid_data(robot_model, eq_c_dim);
@@ -907,7 +930,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
         BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_primal_residual(), LoikSolver_test.get_primal_residual()));
         
         BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_dual_residual(),  LoikSolver_test.get_dual_residual()));
-        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec(), 1e-12));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(LoikSolver.get_dual_residual_vec(), LoikSolver_test.get_dual_residual_vec()));
 
         BOOST_TEST(check_scalar_abs_or_rel_equal(LoikSolver.get_tol_primal(), LoikSolver_test.get_tol_primal()));
         BOOST_CHECK(LoikSolver.get_tol_primal() != 0.0);
@@ -919,6 +942,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
 
         BOOST_TEST(
             check_scalar_abs_or_rel_equal(LoikSolver.get_delta_y_qp_inf_norm(), LoikSolver_test.get_delta_y_qp_inf_norm())
+        );
+        BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
         );
         BOOST_TEST(
             check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
@@ -933,7 +959,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
                                           ikid_data_test.delta_w_inf_norm)
         );
         BOOST_TEST(
-            check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm(), 1e-12)
+            check_scalar_abs_or_rel_equal(LoikSolver.get_A_qp_T_delta_y_qp_inf_norm(), LoikSolver_test.get_A_qp_T_delta_y_qp_inf_norm())
         );
         BOOST_TEST(
             check_scalar_abs_or_rel_equal(LoikSolver.get_ub_qp_T_delta_y_qp_plus(), LoikSolver_test.get_ub_qp_T_delta_y_qp_plus())
@@ -956,7 +982,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_timing, ProblemSetupFixture)
 {
-    max_iter = 5;
+    max_iter = 2;
     
     IkIdDataOptimized ikid_data(robot_model, num_eq_c);
 

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "fwd.hpp"
 #include "loik/config.hpp"
 #include "loik/macros.hpp"
 
@@ -30,16 +31,16 @@
 #include <cstddef>
 #include <set>
 
-namespace loik
-{
+// namespace loik
+// {
 
-  template<
-    typename _Scalar,
-    int _Options = 0,
-    template<typename S, int O> class JointCollectionTpl = pinocchio::JointCollectionDefaultTpl>
-  struct IkIdDataTypeOptimizedTpl;
+//   template<
+//     typename _Scalar,
+//     int _Options = 0,
+//     template<typename S, int O> class JointCollectionTpl = pinocchio::JointCollectionDefaultTpl>
+//   struct IkIdDataTypeOptimizedTpl;
 
-}
+// }
 
 namespace pinocchio
 {
@@ -296,6 +297,16 @@ namespace loik
     /// \brief 
     ///
     Scalar delta_Stf_plus_w_inf_norm;
+
+    ///
+    /// \brief computed in FwdPass2
+    ///
+    Scalar delta_vis_inf_norm;
+
+    ///
+    /// \brief computed in FwdPass2
+    ///
+    Scalar delta_nu_inf_norm;
 
     ///
     /// \brief computed in BwdPass1
