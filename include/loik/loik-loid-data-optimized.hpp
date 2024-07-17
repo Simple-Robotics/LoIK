@@ -309,6 +309,11 @@ namespace loik
     Scalar delta_nu_inf_norm;
 
     ///
+    /// \brief computed in FwdPass2
+    ///
+    Scalar delta_z_inf_norm;
+
+    ///
     /// \brief computed in BwdPass1
     ///
     Scalar delta_fis_inf_norm;

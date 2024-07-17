@@ -396,6 +396,9 @@ namespace loik
     // update slack
     ik_id_data_.z.noalias() = problem_.ub_.cwiseMin(problem_.lb_.cwiseMax(ik_id_data_.nu + (1.0 / mu_ineq_) * ik_id_data_.w)) ;
 
+    // update delta_z_inf_norm
+    ik_id_data_.delta_z_inf_norm = (ik_id_data_.z - ik_id_data_.z_prev).template lpNorm<Eigen::Infinity>();
+
     // update primal residual vector bottom half 
     primal_residual_vec_.segment(6 * nb_, nv_).noalias() = ik_id_data_.nu - ik_id_data_.z;
 

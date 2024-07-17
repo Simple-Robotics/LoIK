@@ -130,7 +130,7 @@ namespace loik
                    const Scalar& rho, const Scalar& mu, const Scalar& mu_equality_scale_factor, const ADMMPenaltyUpdateStrat& mu_update_strat, 
                    const int num_eq_c, const int eq_c_dim, 
                    const Model& model, IkIdData& ik_id_data,
-                   const bool warm_start,
+                   const bool warm_start, const Scalar tol_tail_solve,
                    const bool verbose,  const bool logging) 
         : Base(max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
                rho, mu, mu_equality_scale_factor, mu_update_strat, 
@@ -142,6 +142,7 @@ namespace loik
           nb_(model.njoints - 1),
           nv_(model.nv),
           warm_start_(warm_start),
+          tol_tail_solve_(tol_tail_solve),
           loik_solver_info_(max_iter)
     {
         // initialize helper quantities
@@ -269,11 +270,16 @@ namespace loik
     ///
     void InfeasibilityTailSolve()
     {
-      tail_solve_iter_ = 0;
+      tail_solve_iter_ = 0;   
 
-      while (delta_x_qp_inf_norm_ >= 1e-2 || delta_y_qp_inf_norm_ >= 1e-2) {
+      while (delta_x_qp_inf_norm_ >= tol_tail_solve_ || ik_id_data_.delta_z_inf_norm >= tol_tail_solve_) {
         if (this->iter_ >= this->max_iter_) {
-            std::cerr << "WARNING [FirstOrderLoik::InfeasibilityTailSolve]: infeasibility detected, tail_solve exceeds max_it_," << std::endl;
+            if (this->verbose_) {
+                std::cerr << "WARNING [FirstOrderLoikOptimizedTpl::InfeasibilityTailSolve]: tail solve exceed max_iter_: " << tail_solve_iter_ << " iterations." << std::endl;
+                std::cerr << "[FirstOrderLoikOptimizedTpl::InfeasibilityTailSolve]: normInf delta_x_qp_: " << delta_x_qp_inf_norm_ << std::endl;
+                std::cerr << "[FirstOrderLoikOptimizedTpl::InfeasibilityTailSolve]: normInf delta_z_qp_: " << ik_id_data_.delta_z_inf_norm << std::endl;
+                
+            }
             return;
         }
         
@@ -287,36 +293,26 @@ namespace loik
 
         ik_id_data_.ResetInfNorms();
 
-        // fwd pass 1
         FwdPass1();
 
-        // bwd pass 
         BwdPassOptimizedVisitor();
 
-        // fwd pass 2
         FwdPass2OptimizedVisitor();
 
-        // box projection
         BoxProj();
 
-        // dual update
         DualUpdate();
 
-
         ComputeResiduals();
-
-        delta_y_qp_inf_norm_ = std::max(ik_id_data_.delta_fis_inf_norm, 
-                                        std::max(ik_id_data_.delta_yis_inf_norm, 
-                                                 ik_id_data_.delta_w_inf_norm));
 
         delta_x_qp_inf_norm_ = std::max(ik_id_data_.delta_vis_inf_norm, ik_id_data_.delta_nu_inf_norm);
 
       }
 
       if (this->verbose_) {
-          std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: tail solve completed after " << tail_solve_iter_ << " iterations." << std::endl;
-          std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_x_qp_: " << delta_x_qp_inf_norm_ << std::endl;
-          std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_z_qp_: " << delta_y_qp_inf_norm_ << std::endl;
+          std::cerr << "[FirstOrderLoikOptimizedTpl::InfeasibilityTailSolve]: tail solve completed after " << tail_solve_iter_ << " iterations." << std::endl;
+          std::cerr << "[FirstOrderLoikOptimizedTpl::InfeasibilityTailSolve]: normInf delta_x_qp_: " << delta_x_qp_inf_norm_ << std::endl;
+          std::cerr << "[FirstOrderLoikOptimizedTpl::InfeasibilityTailSolve]: normInf delta_z_qp_: " << ik_id_data_.delta_z_inf_norm << std::endl;
           
       }
 
@@ -438,7 +434,7 @@ namespace loik
                             << std::endl;
               }
               // problem is primal infeasible, run infeasibility tail solve
-              // InfeasibilityTailSolve();
+              InfeasibilityTailSolve();
               break;
           } else if (this->dual_infeasible_) {
               if (this->verbose_) {
@@ -447,7 +443,7 @@ namespace loik
                             << std::endl;
               }
               // problem is dual infeasibile, run infeasibility tail solve
-              // InfeasibilityTailSolve();
+              InfeasibilityTailSolve();
               break;
           }
 
@@ -481,15 +477,22 @@ namespace loik
     inline DVec get_dual_residual_vec() const { return dual_residual_vec_; };
     inline Scalar get_dual_residual_v() const { return dual_residual_v_; };
     inline Scalar get_dual_residual_nu() const { return dual_residual_nu_; };
+    inline Scalar get_tol_tail_solve() const { return tol_tail_solve_; };
+    inline void set_tol_tail_solve(const Scalar tol) { tol_tail_solve_ = tol; };
 
     /// Debug utility functions
-    Scalar get_delta_x_qp_inf_norm()
+    inline Scalar get_delta_x_qp_inf_norm()
     {
         delta_x_qp_inf_norm_ = std::max(ik_id_data_.delta_vis_inf_norm, ik_id_data_.delta_nu_inf_norm);
         return delta_x_qp_inf_norm_;
     };
 
-    Scalar get_delta_y_qp_inf_norm()
+    inline Scalar get_delta_z_qp_inf_norm()
+    {
+      return ik_id_data_.delta_z_inf_norm;
+    };
+
+    inline Scalar get_delta_y_qp_inf_norm()
     {
         delta_y_qp_inf_norm_ = std::max(ik_id_data_.delta_fis_inf_norm, 
                                         std::max(ik_id_data_.delta_yis_inf_norm, 
@@ -497,7 +500,7 @@ namespace loik
         return delta_y_qp_inf_norm_;
     };
 
-    Scalar get_A_qp_T_delta_y_qp_inf_norm()
+    inline Scalar get_A_qp_T_delta_y_qp_inf_norm()
     {   
         A_qp_T_delta_y_qp_inf_norm_ = std::max(ik_id_data_.delta_fis_diff_plus_Aty_inf_norm, 
                                                ik_id_data_.delta_Stf_plus_w_inf_norm);
@@ -505,26 +508,26 @@ namespace loik
         return A_qp_T_delta_y_qp_inf_norm_;
     };
 
-    Scalar get_ub_qp_T_delta_y_qp_plus() 
+    inline Scalar get_ub_qp_T_delta_y_qp_plus() 
     {
         ub_qp_T_delta_y_qp_plus_ = ik_id_data_.bT_delta_y_plus;
         ub_qp_T_delta_y_qp_plus_ += (problem_.ub_.transpose() * ik_id_data_.delta_w.cwiseMax(0))[0];
         return ub_qp_T_delta_y_qp_plus_;
     };
 
-    Scalar get_lb_qp_T_delta_y_qp_minus() 
+    inline Scalar get_lb_qp_T_delta_y_qp_minus() 
     {
         lb_qp_T_delta_y_qp_minus_ = ik_id_data_.bT_delta_y_minus;
         lb_qp_T_delta_y_qp_minus_ += (problem_.lb_.transpose() * ik_id_data_.delta_w.cwiseMin(0))[0];
         return lb_qp_T_delta_y_qp_minus_;
     };
 
-    bool get_primal_infeasibility_cond_1() 
+    inline bool get_primal_infeasibility_cond_1() 
     {
         return A_qp_T_delta_y_qp_inf_norm_ <= this->tol_primal_inf_ * delta_y_qp_inf_norm_;
     };
 
-    bool get_primal_infeasibility_cond_2()
+    inline bool get_primal_infeasibility_cond_2()
     {
         return (ub_qp_T_delta_y_qp_plus_ + lb_qp_T_delta_y_qp_minus_) <= this->tol_primal_inf_ * delta_y_qp_inf_norm_;
     };
@@ -546,17 +549,13 @@ namespace loik
     Scalar primal_residual_slack_;                    // primal residual of just the inequality induced slack equality constraints
     DVec primal_residual_vec_;                        // utility vector for primal residual calculation 
 
-    Scalar dual_residual_prev_;
-    Scalar delta_dual_residual_; 
+    
+    
     Scalar dual_residual_v_;                          // dual residual of just the dual feasibility condition wrt v 
-    Scalar dual_residual_v_prev_;                     
-    Scalar delta_dual_residual_v_;
     Scalar dual_residual_nu_;                         // dual residual of just the dual feasibility condition wrt nu
-    Scalar dual_residual_nu_prev_;
-    Scalar delta_dual_residual_nu_;                 
     DVec dual_residual_vec_;                          // utility vector for dual residual calculation
 
-    // Debug utilities 
+    // test utilities 
     Scalar delta_x_qp_inf_norm_;
     Scalar delta_y_qp_inf_norm_;
     Scalar A_qp_T_delta_y_qp_inf_norm_;
@@ -577,6 +576,9 @@ namespace loik
 
     // warm_start flag
     bool warm_start_;
+
+    // tol for infeasibility tail solve 
+    Scalar tol_tail_solve_;
 
     // solver info logging struct 
     LoikSolverInfo loik_solver_info_;

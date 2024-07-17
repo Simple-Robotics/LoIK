@@ -124,7 +124,7 @@ namespace loik
                    const Scalar& rho, const Scalar& mu, const Scalar& mu_equality_scale_factor, const ADMMPenaltyUpdateStrat& mu_update_strat, 
                    const int num_eq_c, const int eq_c_dim, 
                    const Model& model, IkIdData& ik_id_data,
-                   const bool warm_start,
+                   const bool warm_start, const Scalar tol_tail_solve,
                    const bool verbose,  const bool logging) 
         : Base(max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
                rho, mu, mu_equality_scale_factor, mu_update_strat, 
@@ -136,6 +136,7 @@ namespace loik
           nb_(model.njoints - 1),
           nv_(model.nv),
           warm_start_(warm_start),
+          tol_tail_solve_(tol_tail_solve),
           loik_solver_info_(max_iter)
     {
         // initialize helper quantities
@@ -255,12 +256,18 @@ namespace loik
     ///
     void InfeasibilityTailSolve() 
     {
-        tail_solve_iter_ = 0;
+        tail_solve_iter_ = 0;     
 
-        while (problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() >= 1e-2 || problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() >= 1e-2) {
+        while (problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() >= tol_tail_solve_ || problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() >= tol_tail_solve_) {
+
             
             if (this->iter_ >= this->max_iter_) {
-                std::cerr << "WARNING [FirstOrderLoik::InfeasibilityTailSolve]: infeasibility detected, tail_solve exceeds max_it_," << std::endl;
+                if (this->verbose_) {
+                    std::cerr << "WARNING [FirstOrderLoik::InfeasibilityTailSolve]: tail solve exceeds max_iter_: " << tail_solve_iter_ << " iterations." << std::endl;
+                    std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_x_qp_: " << problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
+                    std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_z_qp_: " << problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
+                    
+                }
                 return;
             }
             
@@ -437,7 +444,7 @@ namespace loik
                               << std::endl;
                 }
                 // problem is primal infeasible, run infeasibility tail solve
-                // InfeasibilityTailSolve();
+                InfeasibilityTailSolve();
                 break;
             } else if (this->dual_infeasible_) {
                 if (this->verbose_) {
@@ -446,7 +453,7 @@ namespace loik
                               << std::endl;
                 }
                 // problem is dual infeasibile, run infeasibility tail solve
-                // InfeasibilityTailSolve();
+                InfeasibilityTailSolve();
                 break;
             }
 
@@ -554,7 +561,7 @@ namespace loik
                               << std::endl;
                 }
                 // problem is primal infeasible, run infeasibility tail solve
-                // InfeasibilityTailSolve();
+                InfeasibilityTailSolve();
                 break;
             } else if (this->dual_infeasible_) {
                 if (this->verbose_) {
@@ -563,7 +570,7 @@ namespace loik
                               << std::endl;
                 }
                 // problem is dual infeasibile, run infeasibility tail solve
-                // InfeasibilityTailSolve();
+                InfeasibilityTailSolve();
                 break;
             }
 
@@ -580,9 +587,12 @@ namespace loik
     inline DVec get_dual_residual_vec() const { return dual_residual_vec_; };
     inline Scalar get_dual_residual_v() const { return dual_residual_v_; };
     inline Scalar get_dual_residual_nu() const { return dual_residual_nu_; };
+    inline Scalar get_tol_tail_solve() const { return tol_tail_solve_; };
+    inline void set_tol_tail_solve(const Scalar tol) { tol_tail_solve_ = tol; };
 
     /// test utilities 
     inline Scalar get_delta_x_qp_inf_norm() const { return problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>(); };
+    inline Scalar get_delta_z_qp_inf_norm() const { return problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>(); };
     inline DVec get_delta_y_qp() const { return problem_.delta_y_qp_; };
     inline Scalar get_delta_y_qp_inf_norm() const { return problem_.delta_y_qp_.template lpNorm<Eigen::Infinity>(); };
     inline DVec get_A_qp_delta_y_qp() const { return problem_.A_qp_ * problem_.delta_y_qp_; };
@@ -641,6 +651,9 @@ protected:
 
     // warm_start flag
     bool warm_start_;
+
+    // tol for infeasibility tail solve 
+    Scalar tol_tail_solve_;
 
     // solver info logging struct 
     LoikSolverInfo loik_solver_info_;

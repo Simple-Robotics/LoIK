@@ -80,6 +80,7 @@ namespace loik
       delta_Stf_plus_w_inf_norm(0.0),
       delta_vis_inf_norm(0.0),
       delta_nu_inf_norm(0.0),
+      delta_z_inf_norm(0.0),
       delta_fis_inf_norm(0.0),
       delta_yis_inf_norm(0.0),
       delta_w_inf_norm(0.0)
@@ -173,6 +174,7 @@ namespace loik
     delta_Stf_plus_w_inf_norm = 0.0;
     delta_vis_inf_norm = 0.0;
     delta_nu_inf_norm = 0.0;
+    delta_z_inf_norm = 0.0;
     delta_fis_inf_norm = 0.0;
     delta_yis_inf_norm = 0.0;
     delta_w_inf_norm = 0.0;
@@ -189,7 +191,8 @@ namespace loik
   void IkIdDataTypeOptimizedTpl<_Scalar, _Options, JointCollectionTpl>::UpdatePrev()
   { 
     vis_prev = vis;
-    nu_prev = nu;              
+    nu_prev = nu; 
+    z_prev = z;             
   } // UpdatePrev
 
 
@@ -247,6 +250,7 @@ namespace loik
                 && ik_id_data_1.delta_Stf_plus_w_inf_norm == ik_id_data_2.delta_Stf_plus_w_inf_norm
                 && ik_id_data_1.delta_vis_inf_norm == ik_id_data_2.delta_vis_inf_norm
                 && ik_id_data_1.delta_nu_inf_norm == ik_id_data_2.delta_nu_inf_norm
+                && ik_id_data_1.delta_z_inf_norm == ik_id_data_2.delta_z_inf_norm
                 && ik_id_data_1.delta_fis_inf_norm == ik_id_data_2.delta_fis_inf_norm
                 && ik_id_data_1.delta_yis_inf_norm == ik_id_data_2.delta_yis_inf_norm
                 && ik_id_data_1.delta_w_inf_norm == ik_id_data_2.delta_w_inf_norm;

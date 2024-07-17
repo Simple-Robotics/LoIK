@@ -103,6 +103,7 @@ struct ProblemSetupFixture {
         tol_rel = 1e-3;
         tol_primal_inf = 1e-2;
         tol_dual_inf = 1e-2;
+        tol_tail_solve = 1e-1;
         rho = 1e-5;
         mu = 1e-2;
         mu_equality_scale_factor = 1e4;
@@ -131,7 +132,6 @@ struct ProblemSetupFixture {
         active_task_constraint_ids.push_back(static_cast<Index>(robot_model.njoints - 1));
         
         const Mat6x6 Ai_identity = Mat6x6::Identity();
-        const Mat6x6 Ai_zero = Mat6x6::Zero();
         Vec6 bi = Vec6::Zero();
         bi[2] = 0.5;
         Ais.push_back(Ai_identity);
@@ -146,6 +146,7 @@ struct ProblemSetupFixture {
     Scalar tol_rel;
     Scalar tol_primal_inf;
     Scalar tol_dual_inf;
+    Scalar tol_tail_solve;
     Scalar rho;
     Scalar mu;
     Scalar mu_equality_scale_factor;
@@ -229,7 +230,6 @@ BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
     PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais_test;
     PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis_test;
     const Mat6x6 Ai_identity_test = Mat6x6::Identity();
-    const Mat6x6 Ai_zero_test = Mat6x6::Zero();
     Vec6 bi_test = Vec6::Zero();
     bi_test[2] = 0.5;
     Ais_test.push_back(Ai_identity_test);
@@ -244,7 +244,7 @@ BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
                               rho_test, mu_test, mu_equality_scale_factor_test, mu_update_strat_test, 
                               num_eq_c_test, eq_c_dim_test, 
                               robot_model_test, ikid_data_test, 
-                              warm_start_test, 
+                              warm_start_test, tol_tail_solve,
                               verbose_test, logging_test};
 
     LoikSolver_test.Solve(q_test, H_ref_test, v_ref_test, active_task_constraint_ids_test, Ais_test, bis_test, lb_test, ub_test);
@@ -254,7 +254,7 @@ BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
                               rho, mu, mu_equality_scale_factor, mu_update_strat, 
                               num_eq_c, eq_c_dim, 
                               robot_model, ikid_data, 
-                              warm_start, 
+                              warm_start, tol_tail_solve,
                               verbose, logging};
 
     LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
@@ -285,7 +285,7 @@ BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
                               rho, mu, mu_equality_scale_factor, mu_update_strat, 
                               num_eq_c, eq_c_dim, 
                               robot_model, ikid_data, 
-                              warm_start, 
+                              warm_start, tol_tail_solve,
                               verbose, logging};
 
     // solve using full reset
@@ -297,7 +297,7 @@ BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
                               rho, mu, mu_equality_scale_factor, mu_update_strat, 
                               num_eq_c, eq_c_dim, 
                               robot_model, ikid_data_test, 
-                              warm_start, 
+                              warm_start, tol_tail_solve,
                               verbose, logging};
 
     // solve with seperate Init and Solve
@@ -327,7 +327,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
                               rho, mu, mu_equality_scale_factor, mu_update_strat, 
                               num_eq_c, eq_c_dim, 
                               robot_model, ikid_data, 
-                              warm_start, 
+                              warm_start, tol_tail_solve,
                               verbose, logging};
 
 
@@ -337,7 +337,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
                                             rho, mu, mu_equality_scale_factor, mu_update_strat, 
                                             num_eq_c, eq_c_dim, 
                                             robot_model, ikid_data_test, 
-                                            warm_start, 
+                                            warm_start, tol_tail_solve,
                                             verbose, logging};
                                    
 
@@ -452,6 +452,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
         check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
     );
     BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_delta_z_qp_inf_norm(), LoikSolver_test.get_delta_z_qp_inf_norm())
+    );
+    BOOST_TEST(
         check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
                                         ikid_data_test.delta_fis_inf_norm)
     );
@@ -530,6 +533,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
         check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
     );
     BOOST_TEST(
+        check_scalar_abs_or_rel_equal(LoikSolver.get_delta_z_qp_inf_norm(), LoikSolver_test.get_delta_z_qp_inf_norm())
+    );
+    BOOST_TEST(
         check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
                                         ikid_data_test.delta_fis_inf_norm)
     );
@@ -563,7 +569,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupFixture)
 {
-    max_iter = 7;
+    max_iter = 8;
     bound_magnitude = 2.0;
     lb = -bound_magnitude * DVec::Ones(robot_model.nv);
     ub = bound_magnitude * DVec::Ones(robot_model.nv);
@@ -575,7 +581,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
                               rho, mu, mu_equality_scale_factor, mu_update_strat, 
                               num_eq_c, eq_c_dim, 
                               robot_model, ikid_data, 
-                              warm_start, 
+                              warm_start, tol_tail_solve,
                               verbose, logging};
 
     // solve using full reset
@@ -587,7 +593,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
                                             rho, mu, mu_equality_scale_factor, mu_update_strat, 
                                             num_eq_c, eq_c_dim, 
                                             robot_model, ikid_data_test, 
-                                            warm_start, 
+                                            warm_start, tol_tail_solve,
                                             verbose, logging};
 
     LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
@@ -641,6 +647,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness, ProblemSetupF
             check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
         );
         BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_delta_z_qp_inf_norm(), LoikSolver_test.get_delta_z_qp_inf_norm())
+        );
+        BOOST_TEST(
             check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
                                           ikid_data_test.delta_fis_inf_norm)
         );
@@ -689,7 +698,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
                               rho, mu, mu_equality_scale_factor, mu_update_strat, 
                               num_eq_c, eq_c_dim, 
                               robot_model, ikid_data, 
-                              warm_start, 
+                              warm_start, tol_tail_solve,
                               verbose, logging};
 
     // solve using full reset
@@ -701,7 +710,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
                                             rho, mu, mu_equality_scale_factor, mu_update_strat, 
                                             num_eq_c, eq_c_dim, 
                                             robot_model, ikid_data_test, 
-                                            warm_start, 
+                                            warm_start, tol_tail_solve,
                                             verbose, logging};
 
     LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
@@ -870,7 +879,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture)
 {
     max_iter = 100;
-    bound_magnitude = 1.5;
+    bound_magnitude = 2.0;
     lb = -bound_magnitude * DVec::Ones(robot_model.nv);
     ub = bound_magnitude * DVec::Ones(robot_model.nv);
 
@@ -881,7 +890,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
                               rho, mu, mu_equality_scale_factor, mu_update_strat, 
                               num_eq_c, eq_c_dim, 
                               robot_model, ikid_data, 
-                              warm_start, 
+                              warm_start, tol_tail_solve,
                               verbose, logging};
 
     // solve using full reset
@@ -893,7 +902,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
                                             rho, mu, mu_equality_scale_factor, mu_update_strat, 
                                             num_eq_c, eq_c_dim, 
                                             robot_model, ikid_data_test, 
-                                            warm_start, 
+                                            warm_start, tol_tail_solve,
                                             verbose, logging};
 
     LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
@@ -947,6 +956,9 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
             check_scalar_abs_or_rel_equal(LoikSolver.get_delta_x_qp_inf_norm(), LoikSolver_test.get_delta_x_qp_inf_norm())
         );
         BOOST_TEST(
+            check_scalar_abs_or_rel_equal(LoikSolver.get_delta_z_qp_inf_norm(), LoikSolver_test.get_delta_z_qp_inf_norm())
+        );
+        BOOST_TEST(
             check_scalar_abs_or_rel_equal((LoikSolver.get_delta_y_qp().segment(0, 6 * (robot_model.njoints - 1))).template lpNorm<Eigen::Infinity>(), 
                                           ikid_data_test.delta_fis_inf_norm)
         );
@@ -982,15 +994,19 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
 
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_timing, ProblemSetupFixture)
 {
-    max_iter = 2;
-    
+
+    max_iter = 100;
+    bound_magnitude = 1.0;
+    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+    ub = bound_magnitude * DVec::Ones(robot_model.nv);
+  
     IkIdDataOptimized ikid_data(robot_model, num_eq_c);
 
     FirstOrderLoikOptimized LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
                                        rho, mu, mu_equality_scale_factor, mu_update_strat, 
                                        num_eq_c, eq_c_dim, 
                                        robot_model, ikid_data, 
-                                       warm_start, 
+                                       warm_start, tol_tail_solve,
                                        verbose, logging};
     
     PinocchioTicToc timer(PinocchioTicToc::US);
