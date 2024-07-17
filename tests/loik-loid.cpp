@@ -215,8 +215,8 @@ BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
     // pinocchio::JointModelFreeFlyerTpl<Scalar> fb_joint_model;
     
     // build model and data
-    const std::string urdf_filename_test = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/example-robot-data/robots/panda_description/urdf/panda.urdf");
-    // const std::string urdf_filename = PINOCCHIO_MODEL_DIR + std::string("/example-robot-data/robots/go1_description/urdf/go1.urdf");
+    const std::string urdf_filename_test = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/panda_description/urdf/panda.urdf");
+    // const std::string urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/go1_description/urdf/go1.urdf");
     pinocchio::urdf::buildModel(urdf_filename_test, robot_model_test, false);
     
     // solve ik quantitites
