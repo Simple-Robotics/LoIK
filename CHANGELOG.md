@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2024-07-17
 
-## [0.1.0] - 2024-06-19
-
 ### Added
 
 - First public version
+
+[unreleased]: https://github.com/Simple-Robotics/LoIK/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Simple-Robotics/LoIK/releases/releases/tag/v1.0.0
