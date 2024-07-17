@@ -35,6 +35,7 @@ cd LoIK
 mkdir build && cd build 
 cmake .. -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=your_install_folder -DCMAKE_CXX_FLAGS="-march=native"
 make -jNCPUS
+make install
 ```
 
 #### Dependencies
@@ -45,17 +46,35 @@ make -jNCPUS
 * (optional) [example-robot-data](https://github.com/Gepetto/example-robot-data)>=4.1.0 | [conda](https://anaconda.org/conda-forge/example-robot-data) (required for examples and benchmarks)
 * a C++17 compliant compiler
 
-### Notes
+#### Notes
 
 * For developers, add the `-D CMAKE_EXPORT_COMPILE_COMMANDS=1` when working with language servers e.g. clangd.
-* To check for runtime Eigen allocation, add `-D CHECK_RUNTIME_MALLOC=ON`
+* To check for runtime Eigen memory allocation, add `-D CHECK_RUNTIME_MALLOC=ON`
 * By default, building the library will instantiate the templates for the `double` scalar type.
-* To build against a Conda environment, activate the environment and run `export CMAKE_PREFIX_PATH=$CONDA_PREFIX` before running CMake and use `$CONDA_PREFIX` as your install folder.
+* To build against a Conda environment, activate the environment and run `export CMAKE_PREFIX_PATH=$CONDA_PREFIX` before running CMake and use `$CONDA_PREFIX` as your install folder, i.e. add flag `-D CMAKE_INSTALL_PREFIX=$CONDA_PREFIX`.
+
+### Build/install from source with Pixi
+
+To build **LoIK** from source the easiest way is to use [Pixi](https://pixi.sh/latest/#installation).
+
+[Pixi](https://pixi.sh/latest/) is a cross-platform package management tool for developers that
+will install all required dependencies in `.pixi` directory.
+It's used by our CI agent so you have the guarantee to get the right dependencies.
+
+Run the following command to install dependencies, configure, build and test the project:
+
+```bash
+pixi run test
+```
+
+The project will be built in the `build` directory.
+You can now run `pixi shell` and build the project with `cmake` and `ninja` manually.
+
 
 ## Benchmarking
 
 We recommend [Flame Graphs](https://github.com/brendangregg/FlameGraph) for performance analysis.
-Please refer to this code analysis [tutorial](https://github.com/Simple-Robotics/code-analysis-tools?tab=readme-ov-file#install-1) for installing and using flame graph.
+Please refer to this code analysis [tutorial](https://github.com/Simple-Robotics/code-analysis-tools?tab=readme-ov-file#install-1) for installation and usage of flame graph.
 
 ## Citing LoIK
 
