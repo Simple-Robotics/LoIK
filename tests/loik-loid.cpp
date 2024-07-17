@@ -42,11 +42,6 @@ check_scalar_abs_or_rel_equal(const Scalar a, const Scalar b, const Scalar tol =
     bool c_abs = (std::fabs(a - b) < tol);
     bool c_rel = (std::fabs(a - b) / std::fabs(a) < tol) && 
                  (std::fabs(a - b) / std::fabs(b) < tol);
-
-    // std::cout << "c_abs: " << c_abs << std::endl;
-    // std::cout << "c_rel: " << c_rel << std::endl;
-    // std::cout << "a = " << a << ", b = " << b << ", tol = " << tol << '\n' 
-    //           << "| a - b | = " << std::fabs(a - b) << std::endl;
     
   if( !c_abs && !c_rel )
   {
@@ -72,11 +67,6 @@ check_eigen_dense_abs_or_rel_equal(const Eigen::DenseBase<T1>& a, const Eigen::D
 
     // when a and b are close to zero, use absolute tol
     bool c2 = (a.derived() - b.derived()).template lpNorm<Eigen::Infinity>() < tol;
-
-    // std::cout << "tolerance tol : " << tol << '\n'
-    //           << "relative tol checking, c1 : " << c1 << '\n' 
-    //           << "absolute tol checking, c2 : " << c2 << '\n'
-    //           << "| a - b |_inf : " << (a.derived() - b.derived()).template lpNorm<Eigen::Infinity>() << '\n';
 
     if ( !c1 && !c2 ) {
         boost::test_tools::predicate_result res( false );
@@ -113,19 +103,18 @@ struct ProblemSetupFixture {
         warm_start = false;
         verbose = false;
         logging = false;
-
-        // pinocchio::JointModelFreeFlyerTpl<Scalar> fb_joint_model;
         
         // build model and data
-        urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/panda_description/urdf/panda.urdf");
-        // urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/go1_description/urdf/panda.urdf");
+        // urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/panda_description/urdf/panda.urdf");
+        // urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/solo_description/urdf/solo.urdf");
+        urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/talos_data/robots/talos_full_v2.urdf");
         pinocchio::urdf::buildModel(urdf_filename, robot_model, false);
 
         
         // solve ik quantitites
         q = pinocchio::neutral(robot_model);
-        q << -2.79684649, -0.55090374,  0.424806  , -1.21112304, -0.89856966,
-            0.79726132, -0.07125267,  0.13154589,  0.13171856;
+        // q << -2.79684649, -0.55090374,  0.424806  , -1.21112304, -0.89856966,
+        //     0.79726132, -0.07125267,  0.13154589,  0.13171856;
         H_ref = Mat6x6::Identity();
         H_ref_inertia = Inertia{H_ref};
         v_ref = Motion::Zero();
@@ -272,7 +261,7 @@ BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
 BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
 {
     max_iter = 200;
-    bound_magnitude = 1.0;
+    bound_magnitude = 5.0;
     lb = -bound_magnitude * DVec::Ones(robot_model.nv);
     ub = bound_magnitude * DVec::Ones(robot_model.nv);
 
