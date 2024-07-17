@@ -905,14 +905,17 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
                                             warm_start, tol_tail_solve,
                                             verbose, logging};
 
-    LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    // LoikSolver_test.SolveInit(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
 
 
     // repeatedly call 'Solve()' and check answers against ground truth
     const int LOOP = 5;
     SMOOTH(LOOP)
     {
-        LoikSolver_test.Solve();
+        // LoikSolver_test.Solve();
+
+        LoikSolver_test.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+        // LoikSolver_test.Solve(q, active_task_constraint_ids[0], Ais[0], bis[0]);
         
         for (const auto& idx : ikid_data_test.joint_range) {
             
@@ -995,7 +998,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset, ProblemSetupFixture
 BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_timing, ProblemSetupFixture)
 {
 
-    max_iter = 100;
+    max_iter = 2;
     bound_magnitude = 1.0;
     lb = -bound_magnitude * DVec::Ones(robot_model.nv);
     ub = bound_magnitude * DVec::Ones(robot_model.nv);
@@ -1029,6 +1032,53 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_timing, ProblemSetupFixture)
     SMOOTH(NBT)
     {
         LoikSolver.Solve();
+        // LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    }
+    std::cout << "LOIK = \t\t\t\t"; timer.toc(std::cout,NBT);
+
+    BOOST_CHECK(LoikSolver.get_iter() == iter_took_to_solver);
+
+
+    BOOST_CHECK(0 == 0);
+} // test_1st_order_loik_timing
+
+
+BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_tailored_timing, ProblemSetupFixture)
+{
+
+    max_iter = 2;
+    bound_magnitude = 1.0;
+    lb = -bound_magnitude * DVec::Ones(robot_model.nv);
+    ub = bound_magnitude * DVec::Ones(robot_model.nv);
+  
+    IkIdDataOptimized ikid_data(robot_model, num_eq_c);
+
+    FirstOrderLoikOptimized LoikSolver{max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
+                                       rho, mu, mu_equality_scale_factor, mu_update_strat, 
+                                       num_eq_c, eq_c_dim, 
+                                       robot_model, ikid_data, 
+                                       warm_start, tol_tail_solve,
+                                       verbose, logging};
+    
+    PinocchioTicToc timer(PinocchioTicToc::US);
+
+    #ifdef NDEBUG
+    const int NBT = 100000;
+    // const int NBT = 1;
+    #else
+        const int NBT = 100000;
+        std::cout << "(the time score in debug mode is not relevant) " << std::endl;
+    #endif
+
+  
+    LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
+    int iter_took_to_solver = LoikSolver.get_iter();
+    std::cout << "Timing over " << iter_took_to_solver << " iterations for solver to solve" << std::endl;
+
+    timer.tic();
+    SMOOTH(NBT)
+    {
+        LoikSolver.Solve(q, active_task_constraint_ids[0], Ais[0], bis[0]);
     }
     std::cout << "LOIK = \t\t\t\t"; timer.toc(std::cout,NBT);
 

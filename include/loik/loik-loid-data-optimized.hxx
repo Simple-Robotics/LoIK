@@ -115,14 +115,15 @@ namespace loik
   { 
     
     if (! warm_start) {
-
       w.setZero();
       z.setZero();
-      
-    } else {
-      
-
-    }
+      nu.setZero();
+      for (auto& idx : joint_full_range) {
+        vis[idx].setZero();
+        fis[idx].setZero();
+        fis_diff_plus_Aty[idx].setZero();
+      }
+    } 
   } // Reset
 
 

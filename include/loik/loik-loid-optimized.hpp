@@ -362,7 +362,8 @@ namespace loik
 
     
     ///
-    /// \brief Solve the constrained differential IK problem, just the main loop
+    /// \brief Solve the constrained differential IK problem, just the main loop, 
+    ///        useful mainly for checking computation timings
     ///
     void Solve()
     {
@@ -451,11 +452,15 @@ namespace loik
           UpdateMu();
 
       }
-    }; // Solve
+    }; // Solve 
 
 
     ///
     /// \brief Stand alone Solve, solves the constrained differential IK problem.
+    ///
+    /// Attention, this `Solve()` call will wipe the problem formulation everytime, therefore 
+    /// not the most efficient implementation, consider using tailored `Solve()` for specific
+    /// scenarios such as trakectory tracking.
     ///
     /// \param[in] q                               current generalized configuration  (DVec)
     /// \param[in] H_ref                           Cost weight for tracking reference (DMat)
@@ -470,7 +475,224 @@ namespace loik
     void Solve(const DVec& q, 
                const Mat6x6& H_ref, const Motion& v_ref, 
                const std::vector<Index>& active_task_constraint_ids, const PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6)& Ais, const PINOCCHIO_ALIGNED_STD_VECTOR(Vec6)& bis, 
-               const DVec& lb, const DVec& ub);
+               const DVec& lb, const DVec& ub)
+    {
+      // reset logging if this->logging_
+      if (this->logging_) {
+          loik_solver_info_.Reset();        // reset logging
+      }
+
+      // reset problem description
+      problem_.Reset();               
+
+      // reset IkIdData
+      ik_id_data_.Reset(this->warm_start_);
+
+      // wipe solver quantities'
+      ResetSolver();
+
+      // update problem formulation 
+      problem_.UpdateReference(H_ref, v_ref);
+      problem_.UpdateIneqConstraints(lb, ub);
+      problem_.UpdateEqConstraints(active_task_constraint_ids, Ais, bis);
+
+      FwdPassInit(q);
+
+      // solver main loop
+      for (int i = 1; i < this->max_iter_; i++) {
+
+
+          this->iter_ = i;
+
+          loik_solver_info_.iter_list_.push_back(this->iter_);
+
+          ik_id_data_.UpdatePrev();
+
+          ik_id_data_.ResetInfNorms();
+
+          // fwd pass 1
+          FwdPass1();
+
+          // bwd pass 
+          BwdPassOptimizedVisitor();
+
+          // fwd pass 2
+          FwdPass2OptimizedVisitor();
+
+          // box projection
+          BoxProj();
+
+          // dual update
+          DualUpdate();
+
+
+          ComputeResiduals();
+
+          if (this->logging_) {
+
+              // logging residuals, should be disabled for speed 
+              loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
+              loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
+              loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
+              loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
+              loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
+              loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
+
+              loik_solver_info_.mu_list_.push_back(this->mu_);
+              loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
+              loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
+
+          }
+
+          // check for convergence or infeasibility 
+          CheckConvergence();
+          // CheckFeasibility();
+          if (this->iter_ > 1) {
+              CheckFeasibility();
+          }
+
+          if (this->converged_) {
+              break; // converged, break out of solver main loop
+          } else if (this->primal_infeasible_) {
+              if (this->verbose_) {
+                  std::cerr << "WARNING [FirstOrderLoikOptimizedTpl::Solve]: primal infeasibility detected at iteration: " 
+                            << this->iter_ 
+                            << std::endl;
+              }
+              // problem is primal infeasible, run infeasibility tail solve
+              InfeasibilityTailSolve();
+              break;
+          } else if (this->dual_infeasible_) {
+              if (this->verbose_) {
+                  std::cerr << "WARNING [FirstOrderLoikOptimizedTpl::Solve]: dual infeasibility detected at iteration: " 
+                            << this->iter_ 
+                            << std::endl;
+              }
+              // problem is dual infeasibile, run infeasibility tail solve
+              InfeasibilityTailSolve();
+              break;
+          }
+
+          // update ADMM penalty 
+          UpdateMu();
+
+      }
+    }; // Solve general purpose
+
+
+    ///
+    /// \brief Stand alone Solve, solves the constrained differential IK problem.
+    ///
+    /// Attention, this `Solve()` call will wipe the problem formulation everytime, therefore 
+    /// not the most efficient implementation, consider using tailored `Solve()` for specific
+    /// scenarios such as trakectory tracking.
+    ///
+    /// \param[in] q                               current generalized configuration  (DVec)
+    /// \param[in] c_id                            joint ids where equality constraint need to be updated
+    /// \param[in] Ais                             equality constraint matrix (Mat6x6)
+    /// \param[in] bis                             equality constraint target (Vec6)
+    /// \param[out] this->ik_id_data_.z            projected joint velocities onto the box constraint set
+    ///
+    void Solve(const DVec& q,
+               const Index c_id, const Mat6x6& Ai, const Vec6& bi)
+    {
+      // reset logging if this->logging_
+      if (this->logging_) {
+          loik_solver_info_.Reset();        // reset logging
+      }             
+
+      // reset IkIdData
+      ik_id_data_.Reset(this->warm_start_);
+
+      // wipe solver quantities'
+      ResetSolver();
+
+      // update problem formulation 
+      problem_.UpdateEqConstraint(c_id, Ai, bi);
+
+      FwdPassInit(q);
+
+      // solver main loop
+      for (int i = 1; i < this->max_iter_; i++) {
+
+
+          this->iter_ = i;
+
+          loik_solver_info_.iter_list_.push_back(this->iter_);
+
+          ik_id_data_.UpdatePrev();
+
+          ik_id_data_.ResetInfNorms();
+
+          // fwd pass 1
+          FwdPass1();
+
+          // bwd pass 
+          BwdPassOptimizedVisitor();
+
+          // fwd pass 2
+          FwdPass2OptimizedVisitor();
+
+          // box projection
+          BoxProj();
+
+          // dual update
+          DualUpdate();
+
+
+          ComputeResiduals();
+
+          if (this->logging_) {
+
+              // logging residuals, should be disabled for speed 
+              loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
+              loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
+              loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
+              loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
+              loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
+              loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
+
+              loik_solver_info_.mu_list_.push_back(this->mu_);
+              loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
+              loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
+
+          }
+
+          // check for convergence or infeasibility 
+          CheckConvergence();
+          // CheckFeasibility();
+          if (this->iter_ > 1) {
+              CheckFeasibility();
+          }
+
+          if (this->converged_) {
+              break; // converged, break out of solver main loop
+          } else if (this->primal_infeasible_) {
+              if (this->verbose_) {
+                  std::cerr << "WARNING [FirstOrderLoikOptimizedTpl::Solve]: primal infeasibility detected at iteration: " 
+                            << this->iter_ 
+                            << std::endl;
+              }
+              // problem is primal infeasible, run infeasibility tail solve
+              InfeasibilityTailSolve();
+              break;
+          } else if (this->dual_infeasible_) {
+              if (this->verbose_) {
+                  std::cerr << "WARNING [FirstOrderLoikOptimizedTpl::Solve]: dual infeasibility detected at iteration: " 
+                            << this->iter_ 
+                            << std::endl;
+              }
+              // problem is dual infeasibile, run infeasibility tail solve
+              InfeasibilityTailSolve();
+              break;
+          }
+
+          // update ADMM penalty 
+          UpdateMu();
+
+      }
+
+    }; // Solver tailored
 
 
     inline DVec get_primal_residual_vec() const { return primal_residual_vec_; };

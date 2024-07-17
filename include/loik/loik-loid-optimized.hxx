@@ -267,24 +267,15 @@ namespace loik
     }
 
     // to properlly handle warm-starting: 
-    if (warm_start_) {
-
-        Index c_vec_id = 0;
-        for (const auto& c_id : problem_.active_task_constraint_ids_) {
-            ik_id_data_.Aty[c_vec_id] = problem_.Ais_[c_vec_id].transpose() * ik_id_data_.yis[c_vec_id];
-            c_vec_id++;
-        }
-
-    } else {
+    if ( !warm_start_ ) {
         // no warm_start 
-
         Index c_vec_id = 0;
         for (const auto& c_id : problem_.active_task_constraint_ids_) {
+            ik_id_data_.yis[c_vec_id].setZero();
             ik_id_data_.Aty[c_vec_id].setZero();
             c_vec_id++;
         }
-
-    }
+    } 
 
 
     LOIK_EIGEN_MALLOC_ALLOWED();
