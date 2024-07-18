@@ -1,6 +1,6 @@
 # LoIK
 
-**LoIK** is a simple yet efficient (constrained) differential inverse kinematics solver for robotics 
+**LoIK** is a simple yet efficient (constrained) differential inverse kinematics solver for robotics
 
 It is designed to function as an inner solver for various downstream applications, including global inverse kinematics and sampling-based motion planning.
 
@@ -9,7 +9,7 @@ It is designed to function as an inner solver for various downstream application
 **LoIK** is a C++ template library, which provides
 
 * a set of efficient solvers for constrained differential inverse kinematics problems
-* support for the [pinocchio](https://github.com/stack-of-tasks/pinocchio) rigid-body dynamics library 
+* support for the [pinocchio](https://github.com/stack-of-tasks/pinocchio) rigid-body dynamics library
 * an interface to the [IKBench](https://github.com/Simple-Robotics/IKBench) inverse kinematics benchmark library which can be used to compare different IK solver performances
 * Python bindings leveraging [eigenpy](https://github.com/stack-of-tasks/eigenpy) {Next release}
 
@@ -32,7 +32,7 @@ conda install -c conda-forge loik  # or -c conda-forge
 ```bash
 git clone https://github.com/Simple-Robotics/LoIK --recursive
 cd LoIK
-mkdir build && cd build 
+mkdir build && cd build
 cmake .. -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=your_install_folder -DCMAKE_CXX_FLAGS="-march=native"
 make -jNCPUS
 make install
