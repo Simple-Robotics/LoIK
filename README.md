@@ -6,7 +6,7 @@ It is designed to function as an inner solver for various downstream application
 
 ## Features
 
-**LoIK** is a C++ template library, which provides
+**LoIK** is a C++ template library, which provides:
 
 * a set of efficient solvers for constrained differential inverse kinematics problems
 * support for the [pinocchio](https://github.com/stack-of-tasks/pinocchio) rigid-body dynamics library
@@ -106,7 +106,7 @@ Please also consider citing the reference paper for the **LoIK** algorithm:
 * [Joris Vaillant](https://github.com/jorisv) (Inria): core developer
 * [Stéphane Caron](https://scaron.info/) (Inria): core developer
 * [Seth Hutchinson](https://faculty.cc.gatech.edu/~seth/) (Georgia Tech): project instructor
-* [Justin Carpentier](https://jcarpent.github.io/) (Inria): project instructor
+* [Justin Carpentier](https://jcarpent.github.io/) (Inria): project instructor and core developer
 
 ## Acknowledgments
 
