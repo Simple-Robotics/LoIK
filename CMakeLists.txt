@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(PROJECT_NAME loik)
-set(PROJECT_DESCRIPTION "TODO.")
+set(PROJECT_DESCRIPTION "Low-Order Inverse Kinematics")
 set(PROJECT_URL "https://github.com/Simple-Robotics/LoIK")
 set(PROJECT_CUSTOM_HEADER_EXTENSION "hpp")
 set(PROJECT_CUSTOM_HEADER_DIR "loik")
