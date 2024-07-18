@@ -4,24 +4,5 @@ Xcode*
 *.pyc
 **/.ipynb_checkpoints
 coverage*
-.travis
 .vscode*
 *.orig
-# pixi environments
-.pixi
-*.egg-info
-**/.DS_STORE
-*/.DS_STORE
-*/.idea
-*/cmake-*
-.DS_STORE
-.cache
-.clion*
-.idea
-.vscode
-__pycache__
-cmake-*
-compile_commands.json
-videos/*.mp4
-videos/*.png
-videos/src-*
