@@ -205,14 +205,11 @@ BOOST_FIXTURE_TEST_CASE(test_problem_setup, ProblemSetupFixture)
     // pinocchio::JointModelFreeFlyerTpl<Scalar> fb_joint_model;
     
     // build model and data
-    const std::string urdf_filename_test = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/panda_description/urdf/panda.urdf");
-    // const std::string urdf_filename = EXAMPLE_ROBOT_DATA_MODEL_DIR + std::string("/go1_description/urdf/go1.urdf");
+    const std::string urdf_filename_test = urdf_filename;
     pinocchio::urdf::buildModel(urdf_filename_test, robot_model_test, false);
     
     // solve ik quantitites
-    DVec q_test = pinocchio::neutral(robot_model);
-    q_test << -2.79684649, -0.55090374,  0.424806  , -1.21112304, -0.89856966,
-        0.79726132, -0.07125267,  0.13154589,  0.13171856;
+    DVec q_test = q;
     const Mat6x6 H_ref_test = Mat6x6::Identity();
     const Motion v_ref_test = Motion::Zero();
     const std::vector<Index> active_task_constraint_ids_test{static_cast<Index>(robot_model_test.njoints - 1)};
@@ -265,7 +262,7 @@ BOOST_FIXTURE_TEST_CASE(test_loik_solve_split, ProblemSetupFixture)
     lb = -bound_magnitude * DVec::Ones(robot_model.nv);
     ub = bound_magnitude * DVec::Ones(robot_model.nv);
 
-    verbose = true;
+    verbose = false;
     
     // instantiate ground truth solver 
     IkIdData ikid_data(robot_model, eq_c_dim);
@@ -347,19 +344,20 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
             BOOST_CHECK(ikid_data.His[0].isApprox(Mat6x6::Zero()));
             BOOST_CHECK(ikid_data_test.His[0].isApprox(Mat6x6::Identity()));
         } else {
-            BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
+            BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx], 1e-14));
         }
         
-        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx], 1e-14));
         BOOST_CHECK((ikid_data_test.pis_aba[idx].toVector()).isApprox(ikid_data_test.pis[idx].toVector()));
+
     }
 
     
 
     for (const auto& idx : ikid_data_test.joint_range) {
         const JointModel& jmodel = robot_model.joints[idx];
-        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.R)).isApprox(ikid_data.Ris[idx]));
-        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.r)).isApprox(ikid_data.ris[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(jmodel.jointVelocitySelector(ikid_data_test.R), ikid_data.Ris[idx], 1e-14));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(jmodel.jointVelocitySelector(ikid_data_test.r), ikid_data.ris[idx], 1e-14));
     }
 
     // bwd pass 
@@ -368,8 +366,8 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
     LoikSolver_test.BwdPassOptimizedVisitor();
 
     for (const auto& idx : ikid_data_test.joint_range) {
-        BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
-        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx], 1e-14));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx], 1e-14));
     }
 
     
@@ -377,11 +375,11 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
     LoikSolver.FwdPass2();
     LoikSolver_test.FwdPass2OptimizedVisitor();
 
-    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.nu, ikid_data.nu, 1e-14));
 
     for (const auto& idx : ikid_data_test.joint_range) {
-        BOOST_CHECK(ikid_data_test.vis[idx].isApprox(ikid_data.vis[idx]));
-        BOOST_CHECK((ikid_data_test.fis[idx].toVector()).isApprox(ikid_data.fis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.vis[idx].toVector(), ikid_data.vis[idx].toVector(), 1e-14));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.fis[idx].toVector(), ikid_data.fis[idx], 1e-14));
     }
 
 
@@ -389,20 +387,19 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_correctness_component_wise
     LoikSolver.BoxProj();
     LoikSolver_test.BoxProj();
 
-    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
-    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
-    BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
-
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.nu, ikid_data.nu, 1e-14));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.w, ikid_data.w, 1e-14));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.z, ikid_data.z, 1e-14));
+    
 
     // dual update"
     LoikSolver.DualUpdate();
     LoikSolver_test.DualUpdate();
-    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.w, ikid_data.w, 1e-14));
 
     Index c_vec_id = 0;
     for (const auto& c_id : active_task_constraint_ids) {
-        BOOST_CHECK(ikid_data_test.yis[c_vec_id].isApprox(ikid_data.yis[c_id]));
-
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.yis[c_vec_id], ikid_data.yis[c_id], 1e-14));
         c_vec_id ++;
     }
 
@@ -729,17 +726,16 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
 
     for (const auto& idx : ikid_data_test.joint_range) {
         BOOST_CHECK(ikid_data_test.His_aba[idx].isApprox(ikid_data_test.His[idx]));
-        
-        BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
-        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx], 1e-14));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx], 1e-14));
         BOOST_CHECK((ikid_data_test.pis_aba[idx].toVector()).isApprox(ikid_data_test.pis[idx].toVector()));
     }
 
     
     for (const auto& idx : ikid_data_test.joint_range) {
         const JointModel& jmodel = robot_model.joints[idx];
-        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.R)).isApprox(ikid_data.Ris[idx]));
-        BOOST_CHECK((jmodel.jointVelocitySelector(ikid_data_test.r)).isApprox(ikid_data.ris[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(jmodel.jointVelocitySelector(ikid_data_test.R), ikid_data.Ris[idx], 1e-14));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(jmodel.jointVelocitySelector(ikid_data_test.r), ikid_data.ris[idx], 1e-14));
     }
 
     // bwd pass 1
@@ -747,11 +743,8 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
     LoikSolver_test.BwdPassOptimizedVisitor();
 
     for (const auto& idx : ikid_data_test.joint_range) {
-        BOOST_CHECK(ikid_data_test.His[idx].isApprox(ikid_data.His[idx]));
-        BOOST_CHECK((ikid_data_test.pis[idx].toVector()).isApprox(ikid_data.pis[idx]));
-        
-        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx]));
-        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.His[idx], ikid_data.His[idx], 1e-14));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.pis[idx].toVector(), ikid_data.pis[idx], 1e-14));
     }
 
     
@@ -762,10 +755,8 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
     BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
 
     for (const auto& idx : ikid_data_test.joint_range) {
-        BOOST_CHECK(ikid_data_test.vis[idx].isApprox(ikid_data.vis[idx]));
-        BOOST_CHECK((ikid_data_test.fis[idx].toVector()).isApprox(ikid_data.fis[idx]));
-        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.vis[idx].toVector(), ikid_data.vis[idx].toVector()));
-        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.fis[idx].toVector(), ikid_data.fis[idx]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.vis[idx].toVector(), ikid_data.vis[idx].toVector(), 1e-14));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.fis[idx].toVector(), ikid_data.fis[idx], 1e-14));
 
     }
 
@@ -773,19 +764,19 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_optimized_reset_component_wise, Prob
     LoikSolver.BoxProj();
     LoikSolver_test.BoxProj();
 
-    BOOST_CHECK(ikid_data_test.nu.isApprox(ikid_data.nu));
-    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
-    BOOST_CHECK(ikid_data_test.z.isApprox(ikid_data.z));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.nu, ikid_data.nu, 1e-14));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.w, ikid_data.w, 1e-14));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.z, ikid_data.z, 1e-14));
 
 
     // dual update"
     LoikSolver.DualUpdate();
     LoikSolver_test.DualUpdate();
-    BOOST_CHECK(ikid_data_test.w.isApprox(ikid_data.w));
+    BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.w, ikid_data.w, 1e-14));
 
     Index c_vec_id = 0;
     for (const auto& c_id : active_task_constraint_ids) {
-        BOOST_CHECK(ikid_data_test.yis[c_vec_id].isApprox(ikid_data.yis[c_id]));
+        BOOST_TEST(check_eigen_dense_abs_or_rel_equal(ikid_data_test.yis[c_vec_id], ikid_data.yis[c_id], 1e-14));
 
         c_vec_id ++;
     }
@@ -1062,7 +1053,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_tailored_timing, ProblemSetupFixture
   
     LoikSolver.Solve(q, H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub);
     int iter_took_to_solver = LoikSolver.get_iter();
-    std::cout << "Timing over " << iter_took_to_solver << " iterations for solver to solve" << std::endl;
+    std::cout << "Timing over " << iter_took_to_solver << " iterations for tailored solver to solve" << std::endl;
 
     timer.tic();
     SMOOTH(NBT)
@@ -1075,7 +1066,7 @@ BOOST_FIXTURE_TEST_CASE(test_1st_order_loik_tailored_timing, ProblemSetupFixture
 
 
     BOOST_CHECK(0 == 0);
-} // test_1st_order_loik_timing
+} // test_1st_order_loik_tailored_timing
 
 
 BOOST_AUTO_TEST_SUITE_END()
