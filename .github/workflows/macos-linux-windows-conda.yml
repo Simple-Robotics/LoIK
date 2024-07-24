@@ -3,16 +3,16 @@ name: CI - MacOS/Linux/Windows via Pixi
 on:
   push:
     paths-ignore:
-      - '.gitignore'
+      - .gitignore
       - '*.md'
-      - 'LICENSE'
-      - '.pre-commit-config.yaml'
+      - LICENSE
+      - .pre-commit-config.yaml
   pull_request:
     paths-ignore:
-      - '.gitignore'
+      - .gitignore
       - '*.md'
-      - 'LICENSE'
-      - '.pre-commit-config.yaml'
+      - LICENSE
+      - .pre-commit-config.yaml
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -22,8 +22,8 @@ jobs:
     name: ${{ matrix.os }} - Env ${{ matrix.environment }} ${{ matrix.build_type }} ${{ matrix.cxx_options }}
     runs-on: ${{ matrix.os }}
     env:
-      CCACHE_BASEDIR: "${GITHUB_WORKSPACE}"
-      CCACHE_DIR: "${GITHUB_WORKSPACE}/.ccache"
+      CCACHE_BASEDIR: ${GITHUB_WORKSPACE}
+      CCACHE_DIR: ${GITHUB_WORKSPACE}/.ccache
       CCACHE_COMPRESS: true
       CCACHE_COMPRESSLEVEL: 6
 
@@ -41,51 +41,52 @@ jobs:
             environment: clang-cl
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - uses: actions/cache@v4
-      with:
-        path: .ccache
-        key: ccache-macos-linux-windows-pixi-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.cxx_options }}-${{ matrix.environment }}-${{ github.sha }}
-        restore-keys: ccache-macos-linux-windows-pixi-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.cxx_options }}-${{ matrix.environment }}-
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-macos-linux-windows-pixi-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.cxx_options }}-${{ matrix.environment }}-${{ github.sha
+            }}
+          restore-keys: ccache-macos-linux-windows-pixi-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.cxx_options }}-${{ matrix.environment }}-
 
-    - uses: prefix-dev/setup-pixi@v0.8.1
-      with:
-        pixi-version: v0.24.2
-        cache: true
-        environments: ${{ matrix.environment }}
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: v0.24.2
+          cache: true
+          environments: ${{ matrix.environment }}
 
-    - name: Build LoIK [MacOS/Linux]
-      shell: pixi run bash -el {0}
-      if: contains(matrix.os, 'ubuntu') || contains(matrix.os, 'macos')
-      env:
-        CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
-        CMAKE_BUILD_PARALLEL_LEVEL: 4
-      run: |
-        pixi run -e ${{ matrix.environment }} test
+      - name: Build LoIK [MacOS/Linux]
+        shell: pixi run bash -el {0}
+        if: contains(matrix.os, 'ubuntu') || contains(matrix.os, 'macos')
+        env:
+          CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
+          CMAKE_BUILD_PARALLEL_LEVEL: 4
+        run: |
+          pixi run -e ${{ matrix.environment }} test
 
-    - name: Build LoIK [Windows]
-      shell: pixi run bash -el {0}
-      if: contains(matrix.os, 'windows')
-      env:
-        CMAKE_BUILD_TYPE: Release
-        CMAKE_BUILD_PARALLEL_LEVEL: 4
-      run: |
-        pixi run -e ${{ matrix.environment }} test
+      - name: Build LoIK [Windows]
+        shell: pixi run bash -el {0}
+        if: contains(matrix.os, 'windows')
+        env:
+          CMAKE_BUILD_TYPE: Release
+          CMAKE_BUILD_PARALLEL_LEVEL: 4
+        run: |
+          pixi run -e ${{ matrix.environment }} test
 
   check:
     if: always()
     name: check-macos-linux-windows-pixi
 
     needs:
-    - loik-pixi
+      - loik-pixi
 
     runs-on: Ubuntu-latest
 
     steps:
-    - name: Decide whether the needed jobs succeeded or failed
-      uses: re-actors/alls-green@release/v1
-      with:
-        jobs: ${{ toJSON(needs) }}
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}

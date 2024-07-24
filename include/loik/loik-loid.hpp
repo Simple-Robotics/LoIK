@@ -120,233 +120,250 @@ namespace loik
       // TODO: maybe record the dual variables
     };
 
-    FirstOrderLoikTpl(const int max_iter, const Scalar& tol_abs, const Scalar& tol_rel, const Scalar& tol_primal_inf, const Scalar& tol_dual_inf,
-                   const Scalar& rho, const Scalar& mu, const Scalar& mu_equality_scale_factor, const ADMMPenaltyUpdateStrat& mu_update_strat, 
-                   const int num_eq_c, const int eq_c_dim, 
-                   const Model& model, IkIdData& ik_id_data,
-                   const bool warm_start, const Scalar tol_tail_solve,
-                   const bool verbose,  const bool logging) 
-        : Base(max_iter, tol_abs, tol_rel, tol_primal_inf, tol_dual_inf, 
-               rho, mu, mu_equality_scale_factor, mu_update_strat, 
-               verbose, logging), 
-          model_(model),
-          ik_id_data_(ik_id_data),
-          problem_(model.njoints, model.njoints - 1, num_eq_c, eq_c_dim, model.nv),
-          nj_(model.njoints),
-          nb_(model.njoints - 1),
-          nv_(model.nv),
-          warm_start_(warm_start),
-          tol_tail_solve_(tol_tail_solve),
-          loik_solver_info_(max_iter)
+    FirstOrderLoikTpl(
+      const int max_iter,
+      const Scalar & tol_abs,
+      const Scalar & tol_rel,
+      const Scalar & tol_primal_inf,
+      const Scalar & tol_dual_inf,
+      const Scalar & rho,
+      const Scalar & mu,
+      const Scalar & mu_equality_scale_factor,
+      const ADMMPenaltyUpdateStrat & mu_update_strat,
+      const int num_eq_c,
+      const int eq_c_dim,
+      const Model & model,
+      IkIdData & ik_id_data,
+      const bool warm_start,
+      const Scalar tol_tail_solve,
+      const bool verbose,
+      const bool logging)
+    : Base(
+        max_iter,
+        tol_abs,
+        tol_rel,
+        tol_primal_inf,
+        tol_dual_inf,
+        rho,
+        mu,
+        mu_equality_scale_factor,
+        mu_update_strat,
+        verbose,
+        logging)
+    , model_(model)
+    , ik_id_data_(ik_id_data)
+    , problem_(model.njoints, model.njoints - 1, num_eq_c, eq_c_dim, model.nv)
+    , nj_(model.njoints)
+    , nb_(model.njoints - 1)
+    , nv_(model.nv)
+    , warm_start_(warm_start)
+    , tol_tail_solve_(tol_tail_solve)
+    , loik_solver_info_(max_iter)
     {
-        // initialize helper quantities
-        joint_full_range_ = ik_id_data_.joint_full_range; // [0, nj - 1]
-        joint_range_ = ik_id_data_.joint_range;           // [1, nj - 1]
+      // initialize helper quantities
+      joint_full_range_ = ik_id_data_.joint_full_range; // [0, nj - 1]
+      joint_range_ = ik_id_data_.joint_range;           // [1, nj - 1]
 
-
-        ResetSolver();
+      ResetSolver();
     };
-
 
     ///
     /// \brief Reset the diff IK solver
     ///
     void ResetSolver()
     {
-        loik_solver_info_.Reset();        // reset logging
-        problem_.Reset();                 // reset problem formulation
-        Base::Reset();                    // reset base
+      loik_solver_info_.Reset(); // reset logging
+      problem_.Reset();          // reset problem formulation
+      Base::Reset();             // reset base
 
-        ik_id_data_.Reset(this->warm_start_);     // reset IkIdData
+      ik_id_data_.Reset(this->warm_start_); // reset IkIdData
 
-        tail_solve_iter_ = 0;
+      tail_solve_iter_ = 0;
 
-        primal_residual_kinematics_ = std::numeric_limits<Scalar>::infinity();
-        primal_residual_task_ = std::numeric_limits<Scalar>::infinity();
-        primal_residual_slack_ = std::numeric_limits<Scalar>::infinity();
+      primal_residual_kinematics_ = std::numeric_limits<Scalar>::infinity();
+      primal_residual_task_ = std::numeric_limits<Scalar>::infinity();
+      primal_residual_slack_ = std::numeric_limits<Scalar>::infinity();
 
-        dual_residual_prev_ = std::numeric_limits<Scalar>::infinity();
-        delta_dual_residual_ = std::numeric_limits<Scalar>::infinity();
-        dual_residual_v_ = std::numeric_limits<Scalar>::infinity();;
-        dual_residual_v_prev_ = std::numeric_limits<Scalar>::infinity();
-        delta_dual_residual_v_ = std::numeric_limits<Scalar>::infinity();
-        dual_residual_nu_ = std::numeric_limits<Scalar>::infinity();
-        dual_residual_nu_prev_ = std::numeric_limits<Scalar>::infinity();
-        delta_dual_residual_nu_ = std::numeric_limits<Scalar>::infinity();
+      dual_residual_prev_ = std::numeric_limits<Scalar>::infinity();
+      delta_dual_residual_ = std::numeric_limits<Scalar>::infinity();
+      dual_residual_v_ = std::numeric_limits<Scalar>::infinity();
+      ;
+      dual_residual_v_prev_ = std::numeric_limits<Scalar>::infinity();
+      delta_dual_residual_v_ = std::numeric_limits<Scalar>::infinity();
+      dual_residual_nu_ = std::numeric_limits<Scalar>::infinity();
+      dual_residual_nu_prev_ = std::numeric_limits<Scalar>::infinity();
+      delta_dual_residual_nu_ = std::numeric_limits<Scalar>::infinity();
 
-        primal_residual_vec_ = 0.0 * DVec::Ones(problem_.eq_c_dim_ * nb_ + nv_);
-        dual_residual_vec_ = 0.0 * DVec::Ones(6 * nb_ + nv_);
-        
-        mu_eq_ = this->mu_equality_scale_factor_ * this->mu_;    // 'mu_' is reset to 'mu0_' during 'Base::Reset()'
-        mu_ineq_ = this->mu_;
+      primal_residual_vec_ = 0.0 * DVec::Ones(problem_.eq_c_dim_ * nb_ + nv_);
+      dual_residual_vec_ = 0.0 * DVec::Ones(6 * nb_ + nv_);
+
+      mu_eq_ = this->mu_equality_scale_factor_
+               * this->mu_; // 'mu_' is reset to 'mu0_' during 'Base::Reset()'
+      mu_ineq_ = this->mu_;
 
     }; // ResetSolver
 
-
     ///
-    /// \brief Initial forward pass, to propagate forward kinematics. 
+    /// \brief Initial forward pass, to propagate forward kinematics.
     ///
-    void FwdPassInit(const DVec& q);
-
+    void FwdPassInit(const DVec & q);
 
     ///
     /// \brief LOIK first forward pass
     ///
     void FwdPass1();
 
-
     ///
     /// \brief LOIK first packward pass
     ///
     void BwdPass();
-
 
     ///
     /// \brief LOIK second forward pass
     ///
     void FwdPass2();
 
-       
     ///
-    /// \brief Box projection of primal and slack composite quantites 
+    /// \brief Box projection of primal and slack composite quantites
     ///
     void BoxProj();
-
 
     ///
     /// \brief ADMM dual variable updates
     ///
     void DualUpdate();
 
-
     ///
     /// \brief unit test utility function
     ///
     void UpdateQPADMMSolveLoopUtility();
-
 
     ///
     /// \brief Compute solver residuals
     ///
     void ComputeResiduals();
 
-
     ///
     /// \brief Check primal and dual convergence
     ///
     void CheckConvergence();
-
 
     ///
     /// \brief Check primal and dual feasibility
     ///
     void CheckFeasibility();
 
-
     ///
-    /// \brief Update ADMM penalty mu 
+    /// \brief Update ADMM penalty mu
     ///
     void UpdateMu();
 
-
     ///
-    /// \brief when infeasibility is detected, run tail solve so primal residual converges to something. 
-    ///        This gives theoretical guarantee that the solution (unprojected) converges the closest 
-    ///        feasible solution. 
+    /// \brief when infeasibility is detected, run tail solve so primal residual converges to
+    /// something.
+    ///        This gives theoretical guarantee that the solution (unprojected) converges the
+    ///        closest feasible solution.
     ///
-    void InfeasibilityTailSolve() 
+    void InfeasibilityTailSolve()
     {
-        tail_solve_iter_ = 0;     
+      tail_solve_iter_ = 0;
 
-        while (problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() >= tol_tail_solve_ || problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() >= tol_tail_solve_) {
+      while (problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() >= tol_tail_solve_
+             || problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() >= tol_tail_solve_)
+      {
 
-            
-            if (this->iter_ >= this->max_iter_) {
-                if (this->verbose_) {
-                    std::cerr << "WARNING [FirstOrderLoik::InfeasibilityTailSolve]: tail solve exceeds max_iter_: " << tail_solve_iter_ << " iterations." << std::endl;
-                    std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_x_qp_: " << problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
-                    std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_z_qp_: " << problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
-                    
-                }
-                return;
-            }
-            
-
-            this->iter_ ++ ;
-
-            if (this->verbose_) 
-            {
-                std::cout << "===============" << std::endl;
-                std::cout << "ADMM iter: " << this->iter_ << "||" << std::endl;
-                std::cout << "===============" << std::endl;
-            }
-
-
-            loik_solver_info_.iter_list_.push_back(this->iter_);
-
-            tail_solve_iter_ ++;
-            loik_solver_info_.tail_solve_iter_list_.push_back(tail_solve_iter_);
-
-            ik_id_data_.UpdatePrev();
-
-            // fwd pass 1
-            FwdPass1();
-
-            // bwd pass 
-            BwdPass();
-
-            // fwd pass 2
-            FwdPass2();
-
-            // box projection
-            BoxProj();
-
-            // dual update
-            DualUpdate();
-
-            // update standard qp formulation using primal dual variables from current iter
-            problem_.UpdateQPADMMSolveLoop(ik_id_data_);
-
-            // compute residuals 
-            ComputeResiduals();
-
-            if (this->logging_) {
-
-                // logging residuals TODO: should be disabled for speed 
-                loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
-                loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
-                loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
-                loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
-                loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
-                loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
-
-                loik_solver_info_.mu_list_.push_back(this->mu_);
-                loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
-                loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
-
-                loik_solver_info_.tail_solve_primal_residual_task_list_.push_back(primal_residual_task_);
-                loik_solver_info_.tail_solve_primal_residual_slack_list_.push_back(primal_residual_slack_);
-                loik_solver_info_.tail_solve_primal_residual_list_.push_back(this->primal_residual_);
-                loik_solver_info_.tail_solve_dual_residual_nu_list_.push_back(dual_residual_nu_);
-                loik_solver_info_.tail_solve_dual_residual_v_list_.push_back(dual_residual_v_);
-                loik_solver_info_.tail_solve_dual_residual_list_.push_back(this->dual_residual_);
-                loik_solver_info_.tail_solve_delta_x_qp_inf_norm_list_.push_back(problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>());
-                loik_solver_info_.tail_solve_delta_z_qp_inf_norm_list_.push_back(problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>());
-
-            }
-
+        if (this->iter_ >= this->max_iter_)
+        {
+          if (this->verbose_)
+          {
+            std::cerr
+              << "WARNING [FirstOrderLoik::InfeasibilityTailSolve]: tail solve exceeds max_iter_: "
+              << tail_solve_iter_ << " iterations." << std::endl;
+            std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_x_qp_: "
+                      << problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
+            std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_z_qp_: "
+                      << problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
+          }
+          return;
         }
 
-        if (this->verbose_) {
-            std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: tail solve completed after " << tail_solve_iter_ << " iterations." << std::endl;
-            std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_x_qp_: " << problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
-            std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_z_qp_: " << problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
-            
+        this->iter_++;
+
+        if (this->verbose_)
+        {
+          std::cout << "===============" << std::endl;
+          std::cout << "ADMM iter: " << this->iter_ << "||" << std::endl;
+          std::cout << "===============" << std::endl;
         }
 
-    }; //InfeasibilityTailSolve
+        loik_solver_info_.iter_list_.push_back(this->iter_);
 
+        tail_solve_iter_++;
+        loik_solver_info_.tail_solve_iter_list_.push_back(tail_solve_iter_);
 
+        ik_id_data_.UpdatePrev();
+
+        // fwd pass 1
+        FwdPass1();
+
+        // bwd pass
+        BwdPass();
+
+        // fwd pass 2
+        FwdPass2();
+
+        // box projection
+        BoxProj();
+
+        // dual update
+        DualUpdate();
+
+        // update standard qp formulation using primal dual variables from current iter
+        problem_.UpdateQPADMMSolveLoop(ik_id_data_);
+
+        // compute residuals
+        ComputeResiduals();
+
+        if (this->logging_)
+        {
+
+          // logging residuals TODO: should be disabled for speed
+          loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
+          loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
+          loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
+          loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
+          loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
+          loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
+
+          loik_solver_info_.mu_list_.push_back(this->mu_);
+          loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
+          loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
+
+          loik_solver_info_.tail_solve_primal_residual_task_list_.push_back(primal_residual_task_);
+          loik_solver_info_.tail_solve_primal_residual_slack_list_.push_back(
+            primal_residual_slack_);
+          loik_solver_info_.tail_solve_primal_residual_list_.push_back(this->primal_residual_);
+          loik_solver_info_.tail_solve_dual_residual_nu_list_.push_back(dual_residual_nu_);
+          loik_solver_info_.tail_solve_dual_residual_v_list_.push_back(dual_residual_v_);
+          loik_solver_info_.tail_solve_dual_residual_list_.push_back(this->dual_residual_);
+          loik_solver_info_.tail_solve_delta_x_qp_inf_norm_list_.push_back(
+            problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>());
+          loik_solver_info_.tail_solve_delta_z_qp_inf_norm_list_.push_back(
+            problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>());
+        }
+      }
+
+      if (this->verbose_)
+      {
+        std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: tail solve completed after "
+                  << tail_solve_iter_ << " iterations." << std::endl;
+        std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_x_qp_: "
+                  << problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
+        std::cerr << "[FirstOrderLoik::InfeasibilityTailSolve]: normInf delta_z_qp_: "
+                  << problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>() << std::endl;
+      }
+
+    }; // InfeasibilityTailSolve
 
     ///
     /// \brief Initialize the problem to be solved.
@@ -354,115 +371,128 @@ namespace loik
     /// \param[in] q                               current generalized configuration  (DVec)
     /// \param[in] H_ref                           Cost weight for tracking reference (DMat)
     /// \param[in] v_ref                           reference spatial velocity (DVec)
-    /// \param[in] active_task_constraint_ids      vector of joint ids where equality constraints are present (std::vector)
-    /// \param[in] Ais                             vector of equality constraint matrix (std::vector)
-    /// \param[in] bis                             vector of equality constraint targets (std::vector)
-    /// \param[in] lb                              joint velocity lower bounds (DVec)
-    /// \param[in] ub                              joint velocity upper bounds (DVec)
-    /// \param[out] this->ik_id_data_.z            projected joint velocities onto the box constraint set
+    /// \param[in] active_task_constraint_ids      vector of joint ids where equality constraints
+    /// are present (std::vector) \param[in] Ais                             vector of equality
+    /// constraint matrix (std::vector) \param[in] bis                             vector of
+    /// equality constraint targets (std::vector) \param[in] lb                              joint
+    /// velocity lower bounds (DVec) \param[in] ub                              joint velocity upper
+    /// bounds (DVec) \param[out] this->ik_id_data_.z            projected joint velocities onto the
+    /// box constraint set
     ///
-    void SolveInit(const DVec& q, 
-                   const Mat6x6& H_ref, const Motion& v_ref, 
-                   const std::vector<Index>& active_task_constraint_ids, const PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6)& Ais, const PINOCCHIO_ALIGNED_STD_VECTOR(Vec6)& bis, 
-                   const DVec& lb, const DVec& ub)
+    void SolveInit(
+      const DVec & q,
+      const Mat6x6 & H_ref,
+      const Motion & v_ref,
+      const std::vector<Index> & active_task_constraint_ids,
+      const PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) & Ais,
+      const PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) & bis,
+      const DVec & lb,
+      const DVec & ub)
     {
-        // wipe everything, warm-start is taken care of by 'ik_id_data_.Reset()'
-        ResetSolver();
+      // wipe everything, warm-start is taken care of by 'ik_id_data_.Reset()'
+      ResetSolver();
 
-        // TODO: perform initial fwd pass, to calculate forward kinematics quantities
-        FwdPassInit(q);
+      // TODO: perform initial fwd pass, to calculate forward kinematics quantities
+      FwdPassInit(q);
 
-        // update problem formulation 
-        problem_.UpdateQPADMMSolveInit(H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub, model_, ik_id_data_);
+      // update problem formulation
+      problem_.UpdateQPADMMSolveInit(
+        H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub, model_, ik_id_data_);
 
     }; // SolveInit
 
-    
     ///
     /// \brief Solve the constrained differential IK problem, just the main loop
     ///
     void Solve()
     {
-        // solver main loop
-        for (int i = 1; i < this->max_iter_; i++) {
+      // solver main loop
+      for (int i = 1; i < this->max_iter_; i++)
+      {
 
-            this->iter_ = i;
+        this->iter_ = i;
 
-            loik_solver_info_.iter_list_.push_back(this->iter_);
+        loik_solver_info_.iter_list_.push_back(this->iter_);
 
-            ik_id_data_.UpdatePrev();
+        ik_id_data_.UpdatePrev();
 
-            // fwd pass 1
-            FwdPass1();
+        // fwd pass 1
+        FwdPass1();
 
-            // bwd pass 
-            BwdPass();
+        // bwd pass
+        BwdPass();
 
-            // fwd pass 2
-            FwdPass2();
+        // fwd pass 2
+        FwdPass2();
 
-            // box projection
-            BoxProj();
+        // box projection
+        BoxProj();
 
-            // dual update
-            DualUpdate();
+        // dual update
+        DualUpdate();
 
-            // update standard qp formulation using primal dual variables from current iter
-            problem_.UpdateQPADMMSolveLoop(ik_id_data_);
+        // update standard qp formulation using primal dual variables from current iter
+        problem_.UpdateQPADMMSolveLoop(ik_id_data_);
 
-            // compute residuals 
-            ComputeResiduals();
+        // compute residuals
+        ComputeResiduals();
 
-            if (this->logging_) {
+        if (this->logging_)
+        {
 
-                // logging residuals TODO: should be disabled for speed 
-                loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
-                loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
-                loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
-                loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
-                loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
-                loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
+          // logging residuals TODO: should be disabled for speed
+          loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
+          loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
+          loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
+          loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
+          loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
+          loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
 
-                loik_solver_info_.mu_list_.push_back(this->mu_);
-                loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
-                loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
-
-            }
-
-            // check for convergence or infeasibility 
-            CheckConvergence();
-            if (this->iter_ > 1) {
-                CheckFeasibility();
-            }
-
-            if (this->converged_) {
-                break; // converged, break out of solver main loop
-            } else if (this->primal_infeasible_) {
-                if (this->verbose_) {
-                    std::cerr << "WARNING [FirstOrderLoik::Solve]: primal infeasibility detected at iteration: " 
-                              << this->iter_ 
-                              << std::endl;
-                }
-                // problem is primal infeasible, run infeasibility tail solve
-                InfeasibilityTailSolve();
-                break;
-            } else if (this->dual_infeasible_) {
-                if (this->verbose_) {
-                    std::cerr << "WARNING [FirstOrderLoik::Solve]: dual infeasibility detected at iteration: " 
-                              << this->iter_ 
-                              << std::endl;
-                }
-                // problem is dual infeasibile, run infeasibility tail solve
-                InfeasibilityTailSolve();
-                break;
-            }
-
-            // update ADMM penalty 
-            UpdateMu();
-
+          loik_solver_info_.mu_list_.push_back(this->mu_);
+          loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
+          loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
         }
-    }; // Solve
 
+        // check for convergence or infeasibility
+        CheckConvergence();
+        if (this->iter_ > 1)
+        {
+          CheckFeasibility();
+        }
+
+        if (this->converged_)
+        {
+          break; // converged, break out of solver main loop
+        }
+        else if (this->primal_infeasible_)
+        {
+          if (this->verbose_)
+          {
+            std::cerr
+              << "WARNING [FirstOrderLoik::Solve]: primal infeasibility detected at iteration: "
+              << this->iter_ << std::endl;
+          }
+          // problem is primal infeasible, run infeasibility tail solve
+          InfeasibilityTailSolve();
+          break;
+        }
+        else if (this->dual_infeasible_)
+        {
+          if (this->verbose_)
+          {
+            std::cerr
+              << "WARNING [FirstOrderLoik::Solve]: dual infeasibility detected at iteration: "
+              << this->iter_ << std::endl;
+          }
+          // problem is dual infeasibile, run infeasibility tail solve
+          InfeasibilityTailSolve();
+          break;
+        }
+
+        // update ADMM penalty
+        UpdateMu();
+      }
+    }; // Solve
 
     ///
     /// \brief Stand alone Solve, solves the constrained differential IK problem.
@@ -470,195 +500,248 @@ namespace loik
     /// \param[in] q                               current generalized configuration  (DVec)
     /// \param[in] H_ref                           Cost weight for tracking reference (DMat)
     /// \param[in] v_ref                           reference spatial velocity (DVec)
-    /// \param[in] active_task_constraint_ids      vector of joint ids where equality constraints are present (std::vector)
-    /// \param[in] Ais                             vector of equality constraint matrix (std::vector)
-    /// \param[in] bis                             vector of equality constraint targets (std::vector)
-    /// \param[in] lb                              joint velocity lower bounds (DVec)
-    /// \param[in] ub                              joint velocity upper bounds (DVec)
-    /// \param[out] this->ik_id_data_.z            projected joint velocities onto the box constraint set
+    /// \param[in] active_task_constraint_ids      vector of joint ids where equality constraints
+    /// are present (std::vector) \param[in] Ais                             vector of equality
+    /// constraint matrix (std::vector) \param[in] bis                             vector of
+    /// equality constraint targets (std::vector) \param[in] lb                              joint
+    /// velocity lower bounds (DVec) \param[in] ub                              joint velocity upper
+    /// bounds (DVec) \param[out] this->ik_id_data_.z            projected joint velocities onto the
+    /// box constraint set
     ///
-    void Solve(const DVec& q, 
-               const Mat6x6& H_ref, const Motion& v_ref, 
-               const std::vector<Index>& active_task_constraint_ids, const PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6)& Ais, const PINOCCHIO_ALIGNED_STD_VECTOR(Vec6)& bis, 
-               const DVec& lb, const DVec& ub)
-               
+    void Solve(
+      const DVec & q,
+      const Mat6x6 & H_ref,
+      const Motion & v_ref,
+      const std::vector<Index> & active_task_constraint_ids,
+      const PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) & Ais,
+      const PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) & bis,
+      const DVec & lb,
+      const DVec & ub)
+
     {
-        // wipe everything, warm-start is taken care of by 'ik_id_data_.Reset()'
-        ResetSolver();
+      // wipe everything, warm-start is taken care of by 'ik_id_data_.Reset()'
+      ResetSolver();
 
-        // TODO: perform initial fwd pass, to calculate forward kinematics quantities
-        FwdPassInit(q);
+      // TODO: perform initial fwd pass, to calculate forward kinematics quantities
+      FwdPassInit(q);
 
-        // update problem formulation 
-        problem_.UpdateQPADMMSolveInit(H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub, model_, ik_id_data_);
+      // update problem formulation
+      problem_.UpdateQPADMMSolveInit(
+        H_ref, v_ref, active_task_constraint_ids, Ais, bis, lb, ub, model_, ik_id_data_);
 
-        // solver main loop
-        for (int i = 1; i < this->max_iter_; i++) {
+      // solver main loop
+      for (int i = 1; i < this->max_iter_; i++)
+      {
 
+        this->iter_ = i;
 
-            this->iter_ = i;
-
-            if (this->verbose_) 
-            {
-                std::cout << "===============" << std::endl;
-                std::cout << "ADMM iter: " << this->iter_ << "||" << std::endl;
-                std::cout << "===============" << std::endl;
-            }
-
-            loik_solver_info_.iter_list_.push_back(this->iter_);
-
-            ik_id_data_.UpdatePrev();
-
-            // fwd pass 1
-            FwdPass1();
-
-            // bwd pass 
-            BwdPass();
-
-            // fwd pass 2
-            FwdPass2();
-
-            // box projection
-            BoxProj();
-
-            // dual update
-            DualUpdate();
-
-            // update standard qp formulation using primal dual variables from current iter
-            problem_.UpdateQPADMMSolveLoop(ik_id_data_);
-
-            // compute residuals 
-            ComputeResiduals();
-
-            if (this->logging_) {
-
-                // logging residuals TODO: should be disabled for speed 
-                loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
-                loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
-                loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
-                loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
-                loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
-                loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
-
-                loik_solver_info_.mu_list_.push_back(this->mu_);
-                loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
-                loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
-
-            }
-
-            // check for convergence or infeasibility 
-            CheckConvergence();
-            if (this->iter_ > 1) {
-                CheckFeasibility();
-            }
-
-            if (this->converged_) {
-                break; // converged, break out of solver main loop
-            } else if (this->primal_infeasible_) {
-                if (this->verbose_) {
-                    std::cerr << "WARNING [FirstOrderLoik::Solve]: primal infeasibility detected at iteration: " 
-                              << this->iter_ 
-                              << std::endl;
-                }
-                // problem is primal infeasible, run infeasibility tail solve
-                InfeasibilityTailSolve();
-                break;
-            } else if (this->dual_infeasible_) {
-                if (this->verbose_) {
-                    std::cerr << "WARNING [FirstOrderLoik::Solve]: dual infeasibility detected at iteration: " 
-                              << this->iter_ 
-                              << std::endl;
-                }
-                // problem is dual infeasibile, run infeasibility tail solve
-                InfeasibilityTailSolve();
-                break;
-            }
-
-            // update ADMM penalty 
-            UpdateMu();
-
+        if (this->verbose_)
+        {
+          std::cout << "===============" << std::endl;
+          std::cout << "ADMM iter: " << this->iter_ << "||" << std::endl;
+          std::cout << "===============" << std::endl;
         }
 
-    }; // Solve 
+        loik_solver_info_.iter_list_.push_back(this->iter_);
 
+        ik_id_data_.UpdatePrev();
 
-    
-    inline DVec get_primal_residual_vec() const { return primal_residual_vec_; };
-    inline DVec get_dual_residual_vec() const { return dual_residual_vec_; };
-    inline Scalar get_dual_residual_v() const { return dual_residual_v_; };
-    inline Scalar get_dual_residual_nu() const { return dual_residual_nu_; };
-    inline Scalar get_tol_tail_solve() const { return tol_tail_solve_; };
-    inline void set_tol_tail_solve(const Scalar tol) { tol_tail_solve_ = tol; };
+        // fwd pass 1
+        FwdPass1();
 
-    /// test utilities 
-    inline Scalar get_delta_x_qp_inf_norm() const { return problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>(); };
-    inline Scalar get_delta_z_qp_inf_norm() const { return problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>(); };
-    inline DVec get_delta_y_qp() const { return problem_.delta_y_qp_; };
-    inline Scalar get_delta_y_qp_inf_norm() const { return problem_.delta_y_qp_.template lpNorm<Eigen::Infinity>(); };
-    inline DVec get_A_qp_delta_y_qp() const { return problem_.A_qp_ * problem_.delta_y_qp_; };
-    inline Scalar get_A_qp_T_delta_y_qp_inf_norm() const { return (problem_.A_qp_.transpose() * problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>(); };
-    inline Scalar get_ub_qp_T_delta_y_qp_plus() const { return (problem_.ub_qp_.transpose() * problem_.delta_y_qp_plus_).value(); };
-    inline Scalar get_lb_qp_T_delta_y_qp_minus() const { return (problem_.lb_qp_.transpose() * problem_.delta_y_qp_minus_).value(); };
+        // bwd pass
+        BwdPass();
+
+        // fwd pass 2
+        FwdPass2();
+
+        // box projection
+        BoxProj();
+
+        // dual update
+        DualUpdate();
+
+        // update standard qp formulation using primal dual variables from current iter
+        problem_.UpdateQPADMMSolveLoop(ik_id_data_);
+
+        // compute residuals
+        ComputeResiduals();
+
+        if (this->logging_)
+        {
+
+          // logging residuals TODO: should be disabled for speed
+          loik_solver_info_.primal_residual_task_list_.push_back(primal_residual_task_);
+          loik_solver_info_.primal_residual_slack_list_.push_back(primal_residual_slack_);
+          loik_solver_info_.primal_residual_list_.push_back(this->primal_residual_);
+          loik_solver_info_.dual_residual_nu_list_.push_back(dual_residual_nu_);
+          loik_solver_info_.dual_residual_v_list_.push_back(dual_residual_v_);
+          loik_solver_info_.dual_residual_list_.push_back(this->dual_residual_);
+
+          loik_solver_info_.mu_list_.push_back(this->mu_);
+          loik_solver_info_.mu_eq_list_.push_back(mu_eq_);
+          loik_solver_info_.mu_ineq_list_.push_back(mu_ineq_);
+        }
+
+        // check for convergence or infeasibility
+        CheckConvergence();
+        if (this->iter_ > 1)
+        {
+          CheckFeasibility();
+        }
+
+        if (this->converged_)
+        {
+          break; // converged, break out of solver main loop
+        }
+        else if (this->primal_infeasible_)
+        {
+          if (this->verbose_)
+          {
+            std::cerr
+              << "WARNING [FirstOrderLoik::Solve]: primal infeasibility detected at iteration: "
+              << this->iter_ << std::endl;
+          }
+          // problem is primal infeasible, run infeasibility tail solve
+          InfeasibilityTailSolve();
+          break;
+        }
+        else if (this->dual_infeasible_)
+        {
+          if (this->verbose_)
+          {
+            std::cerr
+              << "WARNING [FirstOrderLoik::Solve]: dual infeasibility detected at iteration: "
+              << this->iter_ << std::endl;
+          }
+          // problem is dual infeasibile, run infeasibility tail solve
+          InfeasibilityTailSolve();
+          break;
+        }
+
+        // update ADMM penalty
+        UpdateMu();
+      }
+
+    }; // Solve
+
+    inline DVec get_primal_residual_vec() const
+    {
+      return primal_residual_vec_;
+    };
+    inline DVec get_dual_residual_vec() const
+    {
+      return dual_residual_vec_;
+    };
+    inline Scalar get_dual_residual_v() const
+    {
+      return dual_residual_v_;
+    };
+    inline Scalar get_dual_residual_nu() const
+    {
+      return dual_residual_nu_;
+    };
+    inline Scalar get_tol_tail_solve() const
+    {
+      return tol_tail_solve_;
+    };
+    inline void set_tol_tail_solve(const Scalar tol)
+    {
+      tol_tail_solve_ = tol;
+    };
+
+    /// test utilities
+    inline Scalar get_delta_x_qp_inf_norm() const
+    {
+      return problem_.delta_x_qp_.template lpNorm<Eigen::Infinity>();
+    };
+    inline Scalar get_delta_z_qp_inf_norm() const
+    {
+      return problem_.delta_z_qp_.template lpNorm<Eigen::Infinity>();
+    };
+    inline DVec get_delta_y_qp() const
+    {
+      return problem_.delta_y_qp_;
+    };
+    inline Scalar get_delta_y_qp_inf_norm() const
+    {
+      return problem_.delta_y_qp_.template lpNorm<Eigen::Infinity>();
+    };
+    inline DVec get_A_qp_delta_y_qp() const
+    {
+      return problem_.A_qp_ * problem_.delta_y_qp_;
+    };
+    inline Scalar get_A_qp_T_delta_y_qp_inf_norm() const
+    {
+      return (problem_.A_qp_.transpose() * problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>();
+    };
+    inline Scalar get_ub_qp_T_delta_y_qp_plus() const
+    {
+      return (problem_.ub_qp_.transpose() * problem_.delta_y_qp_plus_).value();
+    };
+    inline Scalar get_lb_qp_T_delta_y_qp_minus() const
+    {
+      return (problem_.lb_qp_.transpose() * problem_.delta_y_qp_minus_).value();
+    };
 
     bool get_primal_infeasibility_cond_1() const
-    { 
-        return (problem_.A_qp_.transpose() * problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>() 
-               <= this->tol_primal_inf_ * (problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>();
-    };
-
-    bool get_primal_infeasibility_cond_2() const 
     {
-        return (problem_.ub_qp_ .transpose() * problem_.delta_y_qp_plus_ + 
-                problem_.lb_qp_.transpose() * problem_.delta_y_qp_minus_).value()
-               <= this->tol_primal_inf_ * (problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>();
+      return (problem_.A_qp_.transpose() * problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>()
+             <= this->tol_primal_inf_ * (problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>();
     };
 
+    bool get_primal_infeasibility_cond_2() const
+    {
+      return (problem_.ub_qp_.transpose() * problem_.delta_y_qp_plus_
+              + problem_.lb_qp_.transpose() * problem_.delta_y_qp_minus_)
+               .value()
+             <= this->tol_primal_inf_ * (problem_.delta_y_qp_).template lpNorm<Eigen::Infinity>();
+    };
 
-
-protected:
-    
-    const Model& model_;
-    IkIdData& ik_id_data_;
+  protected:
+    const Model & model_;
+    IkIdData & ik_id_data_;
 
     ProblemFormulation problem_;
 
     // ADMM solver specific quantities
-    int tail_solve_iter_;                             // tail solve iteration index
-    Scalar primal_residual_kinematics_;               // primal residual of just the forward kinematics equality constraints
-    Scalar primal_residual_task_;                     // primal residual of just the task equality constraints
-    Scalar primal_residual_slack_;                    // primal residual of just the inequality induced slack equality constraints
-    DVec primal_residual_vec_;                        // utility vector for primal residual calculation 
+    int tail_solve_iter_;               // tail solve iteration index
+    Scalar primal_residual_kinematics_; // primal residual of just the forward kinematics equality
+                                        // constraints
+    Scalar primal_residual_task_;       // primal residual of just the task equality constraints
+    Scalar primal_residual_slack_; // primal residual of just the inequality induced slack equality
+                                   // constraints
+    DVec primal_residual_vec_;     // utility vector for primal residual calculation
 
     Scalar dual_residual_prev_;
-    Scalar delta_dual_residual_; 
-    Scalar dual_residual_v_;                          // dual residual of just the dual feasibility condition wrt v 
-    Scalar dual_residual_v_prev_;                     
+    Scalar delta_dual_residual_;
+    Scalar dual_residual_v_; // dual residual of just the dual feasibility condition wrt v
+    Scalar dual_residual_v_prev_;
     Scalar delta_dual_residual_v_;
-    Scalar dual_residual_nu_;                         // dual residual of just the dual feasibility condition wrt nu
+    Scalar dual_residual_nu_; // dual residual of just the dual feasibility condition wrt nu
     Scalar dual_residual_nu_prev_;
-    Scalar delta_dual_residual_nu_;                 
-    DVec dual_residual_vec_;                          // utility vector for dual residual calculation
+    Scalar delta_dual_residual_nu_;
+    DVec dual_residual_vec_; // utility vector for dual residual calculation
 
-    Scalar mu_eq_;                                    // ADMM penalty for equality constraints
-    Scalar mu_ineq_;                                  // ADMM penalty for inequality constraints 
+    Scalar mu_eq_;   // ADMM penalty for equality constraints
+    Scalar mu_ineq_; // ADMM penalty for inequality constraints
 
     // solver helper quantities
-    int nj_;                                          // number of joints in the model_
-    int nb_;                                          // number of bodies in the model_, 'nb_ = nj_ - 1'
-    int nv_;                                          // dimension of nu_ (q_dot)
-    IndexVec joint_full_range_;                       // index of full joint range, [0, njoints - 1]
-    IndexVec joint_range_;                            // index of joint range excluding the world/universe [1, njoints - 1]
+    int nj_;                    // number of joints in the model_
+    int nb_;                    // number of bodies in the model_, 'nb_ = nj_ - 1'
+    int nv_;                    // dimension of nu_ (q_dot)
+    IndexVec joint_full_range_; // index of full joint range, [0, njoints - 1]
+    IndexVec joint_range_; // index of joint range excluding the world/universe [1, njoints - 1]
 
     // warm_start flag
     bool warm_start_;
 
-    // tol for infeasibility tail solve 
+    // tol for infeasibility tail solve
     Scalar tol_tail_solve_;
 
-    // solver info logging struct 
+    // solver info logging struct
     LoikSolverInfo loik_solver_info_;
-    
-};
+  };
 
 } // namespace loik
 

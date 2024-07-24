@@ -17,7 +17,7 @@ namespace loik
   extern template LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI IkIdDataTypeOptimizedTpl<
     pinocchio::context::Scalar,
     pinocchio::context::Options,
-    pinocchio::JointCollectionDefaultTpl>::IkIdDataTypeOptimizedTpl(const Model &, const int );
+    pinocchio::JointCollectionDefaultTpl>::IkIdDataTypeOptimizedTpl(const Model &, const int);
 
   extern template LOIK_EXPLICIT_INSTANTIATION_DECLARATION_DLLAPI void IkIdDataTypeOptimizedTpl<
     pinocchio::context::Scalar,

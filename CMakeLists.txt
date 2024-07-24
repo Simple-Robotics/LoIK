@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(PROJECT_NAME loik)
-set(PROJECT_DESCRIPTION "TODO.")
+set(PROJECT_DESCRIPTION "Low-Order Inverse Kinematics")
 set(PROJECT_URL "https://github.com/Simple-Robotics/LoIK")
 set(PROJECT_CUSTOM_HEADER_EXTENSION "hpp")
 set(PROJECT_CUSTOM_HEADER_DIR "loik")
@@ -55,7 +55,7 @@ endif()
 include(${JRL_CMAKE_MODULES}/base.cmake)
 compute_project_args(PROJECT_ARGS LANGUAGES CXX)
 project(${PROJECT_NAME} ${PROJECT_ARGS})
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/boost.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/ide.cmake)
