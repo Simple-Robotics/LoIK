@@ -27,7 +27,7 @@ add_loik_test(loik-loid)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 if(uppercase_CMAKE_BUILD_TYPE STREQUAL DEBUG)
-  set_tests_properties(test-cpp-loik-loid PROPERTIES TIMEOUT 3000)
+  set_tests_properties(${PROJECT_NAME}-test-cpp-loik-loid PROPERTIES TIMEOUT 3000)
 endif()
 
 add_loik_test(loik-loid-data)
