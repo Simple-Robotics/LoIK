@@ -20,12 +20,12 @@ test = { cmd = "ctest --test-dir build --output-on-failure", depends_on = [
 ccache = ">=4.9.1,<4.10"
 cxx-compiler = ">=1.7.0,<1.8"
 pkg-config = ">=0.29.2,<0.30"
-cmake = ">=3.29.6,<3.30"
+cmake = ">=3.29.6,<3.31"
 ninja = ">=1.12.1,<1.13"
 
 [dependencies]
 eigen = ">=3.4.0,<3.5"
-pinocchio = ">=3.0.0,<3.1"
+pinocchio = ">=3.0.0,<3.2"
 boost = ">=1.84.0,<1.85"
 example-robot-data = ">=4.1.0,<4.2"
 
