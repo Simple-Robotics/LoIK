@@ -6,3 +6,6 @@ Xcode*
 coverage*
 .vscode*
 *.orig
+# pixi environments
+.pixi
+*.egg-info
