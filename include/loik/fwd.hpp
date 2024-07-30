@@ -38,4 +38,11 @@ namespace loik
     template<typename S, int O> class JointCollectionTpl = pinocchio::JointCollectionDefaultTpl>
   struct FirstOrderLoikOptimizedTpl;
 
+  /// type alias 
+  using Scalar = double;
+  using Model = pinocchio::ModelTpl<Scalar>;
+  using IkIdData = loik::IkIdDataTpl<Scalar>;
+  using IkIdDataOptimized = loik::IkIdDataTypeOptimizedTpl<Scalar>;
+  
+
 } // namespace loik

@@ -85,6 +85,8 @@ endif()
 # --- OPTIONS ----------------------------------------
 option(BUILD_WITH_VERSION_SUFFIX "Build libraries with version appended to suffix" OFF)
 option(ENABLE_TEMPLATE_INSTANTIATION "Template instantiation of the main library" ON)
+option(BUILD_WITH_EXTENDED_TESTING "Build library with extended testing" ON)
+option(BUILD_WITH_BENCHMARK "Build library with timing benchmarks" ON)
 
 # --- OPTIONAL DEPENDENCIES -------------------------
 option(INITIALIZE_WITH_NAN "Initialize Eigen entries with NaN" OFF)
@@ -107,6 +109,16 @@ endif()
 if(ENABLE_TEMPLATE_INSTANTIATION)
   add_compile_definitions(LOIK_ENABLE_TEMPLATE_INSTANTIATION)
   list(APPEND CFLAGS_DEPENDENCIES "-DLOIK_ENABLE_TEMPLATE_INSTANTIATION")
+endif()
+
+if(BUILD_WITH_BENCHMARK)
+  message(STATUS "Benchmarking is enabled")
+  add_compile_definitions(ENABLE_BENCHMARK)
+endif()
+
+if(BUILD_WITH_EXTENDED_TESTING)
+  message(STATUS "Extended testing is enabled")
+  add_compile_definitions(ENABLE_EXTENDED_TESTING)
 endif()
 
 macro(TAG_LIBRARY_VERSION target)
@@ -142,6 +154,14 @@ set(LIB_HEADERS
 set(LIB_TEMPLATE_INSTANTIATION_HEADERS
     ${LIB_HEADER_DIR}/loik-loid.txx ${LIB_HEADER_DIR}/loik-loid-optimized.txx
     ${LIB_HEADER_DIR}/loik-loid-data.txx ${LIB_HEADER_DIR}/loik-loid-data-optimized.txx)
+# set(LIB_EXTENDED_TEST_DIR ${PROJECT_SOURCE_DIR}/problems)
+# set(LIB_EXTENDED_TEST_HEADERS
+#     ${LIB_EXTENDED_TEST_DIR}/test-problems.hpp)
+# set(LIB_EXTENDED_TEST_SOURCES
+#     ${LIB_EXTENDED_TEST_DIR}/test-problems.cpp)
+# set(LIB_BENCH_DIR ${PROJECT_SOURCE_DIR}/bench)
+# set(LIB_BENCH_SOURCES
+#     ${LIB_BENCH_DIR}/timings.cpp)
 
 set(LIB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(LIB_SOURCES)
@@ -153,6 +173,15 @@ if(ENABLE_TEMPLATE_INSTANTIATION)
   list(APPEND LIB_HEADERS ${LIB_TEMPLATE_INSTANTIATION_HEADERS})
   list(APPEND LIB_SOURCES ${LIB_TEMPLATE_INSTANTIATION_SOURCES})
 endif()
+
+# if(BUILD_WITH_BENCHMARK)
+#   list(APPEND LIB_SOURCES ${LIB_BENCH_SOURCES})
+# endif()
+
+# if(BUILD_WITH_EXTENDED_TESTING)
+#   list(APPEND LIB_HEADERS ${LIB_EXTENDED_TEST_HEADERS})
+#   list(APPEND LIB_SOURCES ${LIB_EXTENDED_TEST_SOURCES})
+# endif()
 
 function(set_standard_output_directory target)
   set_target_properties(
@@ -220,6 +249,15 @@ install(
 
 if(BUILD_TESTING)
   add_subdirectory(tests)
+endif()
+
+if(BUILD_WITH_BENCHMARK)
+  find_package(benchmark REQUIRED)
+  add_subdirectory(bench)
+endif()
+
+if(BUILD_WITH_EXTENDED_TESTING)
+  add_subdirectory(problems)
 endif()
 
 # --- PACKAGING ----------------------------------------------------------------

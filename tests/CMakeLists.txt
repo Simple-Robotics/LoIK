@@ -1,3 +1,7 @@
+#
+# Copyright (C) 2024 INRIA
+#
+
 add_project_dependency(Boost COMPONENTS unit_test_framework REQUIRED)
 
 add_project_private_dependency(example-robot-data REQUIRED)
