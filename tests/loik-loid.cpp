@@ -2,6 +2,7 @@
 // Copyright (c) 2024 INRIA
 //
 
+#include "loik/fwd.hpp"
 #include "loik/loik-loid.hpp"
 #include "loik/loik-loid-optimized.hpp"
 
@@ -19,21 +20,13 @@
 #include <iostream>
 
 using Scalar = double;
-using Model = pinocchio::ModelTpl<Scalar>;
 using IkIdData = loik::IkIdDataTpl<Scalar>;
 using IkIdDataOptimized = loik::IkIdDataTypeOptimizedTpl<Scalar>;
-using JointModel = IkIdDataOptimized::JointModel;
-using Inertia = typename IkIdData::Inertia;
-using Motion = typename IkIdData::Motion;
-using Force = typename IkIdData::Force;
-using DMat = typename IkIdData::DMat;
-using Mat6x6 = typename IkIdData::Mat6x6;
-using DVec = typename IkIdData::DVec;
-using Vec6 = typename IkIdData::Vec6;
-using Index = typename IkIdData::Index;
 using MuUpdateStrat = loik::ADMMPenaltyUpdateStrat;
 using FirstOrderLoik = loik::FirstOrderLoikTpl<Scalar>;
 using FirstOrderLoikOptimized = loik::FirstOrderLoikOptimizedTpl<Scalar>;
+
+IKID_DATA_TYPEDEF_TEMPLATE(IkIdDataOptimized);
 
 boost::test_tools::predicate_result
 check_scalar_abs_or_rel_equal(const Scalar a, const Scalar b, const Scalar tol = 1e-10)
