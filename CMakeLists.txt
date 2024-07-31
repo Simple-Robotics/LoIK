@@ -119,6 +119,7 @@ endif()
 if(BUILD_WITH_EXTENDED_TESTING)
   message(STATUS "Extended testing is enabled")
   add_compile_definitions(ENABLE_EXTENDED_TESTING)
+  add_compile_definitions(LOIK_PROBLEM_DATA_DIR="${PROJECT_SOURCE_DIR}/problems")
 endif()
 
 macro(TAG_LIBRARY_VERSION target)

@@ -1,50 +1,95 @@
 #pragma once
 
 #include "loik/fwd.hpp"
+#include "loik/loik-loid-data-optimized.hpp"
 
 #include <pinocchio/container/boost-container-limits.hpp>
 
-#include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <iostream>
 
-template < typename _Scalar >
-struct DiffIKProblem {
-  typedef loik::IkIdDataTypeOptimizedTpl<_Scalar> IkIdDataTypeOptimized;
-  IKID_DATA_TYPEDEF_TEMPLATE(IkIdDataTypeOptimized);
+namespace loik {
+  template <typename _Scalar>
+  struct DiffIKProblem {
+    typedef IkIdDataTypeOptimizedTpl<_Scalar> IkIdDataTypeOptimized;
+    IKID_DATA_TYPEDEF_TEMPLATE(IkIdDataTypeOptimized);
 
-	int max_iter;
-  _Scalar tol_abs;
-  _Scalar tol_rel;
-  _Scalar tol_primal_inf;
-  _Scalar tol_dual_inf;
-  _Scalar tol_tail_solve;
-  _Scalar rho;
-  _Scalar mu;
-  _Scalar mu_equality_scale_factor;
+    // solver hyper params
+    int max_iter;
+    Scalar tol_abs;
+    Scalar tol_rel;
+    Scalar tol_primal_inf;
+    Scalar tol_dual_inf;
+    Scalar tol_tail_solve;
+    Scalar rho;
+    Scalar mu0;
+    Scalar mu_equality_scale_factor;
 
-  typename IkIdDataTypeOptimized::MuUpdateStrat mu_update_strat;
-  int num_eq_c = 1;
-  int eq_c_dim = 6;
-  bool warm_start = false;
-  bool verbose = false;
-  bool logging = false;
+    int num_eq_c = 1;
+    int eq_c_dim = 6;
+    bool warm_start = false;
+    bool verbose = false;
+    bool logging = false;
 
-  Model robot_model;
+    // Model robot_model;
 
-  std::string urdf_filename;
+    // std::string urdf_filename;
 
-  DVec q;
+    // problem definitions
+    DVec q;
 
-  Mat6x6 H_ref;
-  Inertia H_ref_inertia;
-  Motion v_ref;
-  std::vector<Index> active_task_constraint_ids;
-  PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais;
-  PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis;
-  Scalar bound_magnitude;
-  DVec lb;
-  DVec ub;
+    Mat6x6 H_ref;
+    Inertia H_ref_inertia;
+    Motion v_ref;
+    std::vector<Index> active_task_constraint_ids;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis;
+    Scalar bound_magnitude;
+    DVec lb;
+    DVec ub;
 
-}; // struct DiffIKProblem
+    // solution info
+    bool converged;
+    bool primal_infeasible;
+    bool dual_infeasible;
+    Scalar primal_residual;
+    Scalar dual_residual;
+    Scalar mu;
+    int n_iter;
+    int n_tail_solve_iter;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Motion) vis;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) yis;
+    DVec w;
+    DVec z;
+    
+
+
+
+    ///
+    /// \brief default constructor
+    ///
+    DiffIKProblem() {};
+  }; // struct DiffIKProblem
+
+
+  template <typename _Scalar>
+  struct SequenceDiffIKProblems {
+    typedef DiffIKProblem<_Scalar> Problem;
+    std::vector<Problem> problem_sequence;
+
+    ///
+    /// \brief default constructor 
+    ///
+    SequenceDiffIKProblems() {};
+
+    ///
+    /// \brief build sequence of diff IK problems from json 
+    ///
+    void LoadProblemsFromJson(const std::string& file_name);
+
+  }; // SequenceDiffIKProblems
+
+
+} // namespace loik 
