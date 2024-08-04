@@ -11,8 +11,45 @@
 #include <iostream>
 
 namespace loik {
+
+  namespace utils {
+    using ptree = boost::property_tree::ptree;
+
+    ///
+    /// \brief parse ptree to Eigen vector like object
+    ///
+    template <typename VecLike>
+    void PtreeToVec(const ptree& pt, const VecLike& vec);
+
+    ///
+    /// \brief parse ptree to Eigen matrix like object
+    ///
+    template <typename MatLike>
+    void PtreeToMat(const ptree& pt, const MatLike& mat);
+
+    ///
+    /// \brief parse ptree to `std::vector<T>` container-like object
+    ///
+    template <typename T, template<typename...> class Container>
+    void PtreeToContainerVec(const ptree& pt, const Container<T>& container);
+
+    ///
+    /// \brief parse ptree to std::vector of Eigen vector like object
+    ///
+    template <typename VecLike, template<typename> class VecOfVecLike>
+    void PtreeToVecOfVec(const ptree& pt, const VecOfVecLike<VecLike>& vec_of_vec);
+
+    ///
+    /// \brief parse ptree to std::vector of Eigen matrix like object
+    ///
+    template <typename MatLike, template<typename> class VecOfMatLike>
+    void PtreeToVecOfMat(const ptree& pt, const VecOfMatLike<MatLike>& vec_of_mat);
+
+  } // namespace utils
+
   template <typename _Scalar>
   struct DiffIKProblem {
+    using ptree = boost::property_tree::ptree;
     typedef IkIdDataTypeOptimizedTpl<_Scalar> IkIdDataTypeOptimized;
     IKID_DATA_TYPEDEF_TEMPLATE(IkIdDataTypeOptimized);
 
@@ -40,13 +77,11 @@ namespace loik {
     // problem definitions
     DVec q;
 
-    Mat6x6 H_ref;
-    Inertia H_ref_inertia;
-    Motion v_ref;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) H_refs;
+    PINOCCHIO_ALIGNED_STD_VECTOR(Motion) v_refs;
     std::vector<Index> active_task_constraint_ids;
     PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais;
     PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis;
-    Scalar bound_magnitude;
     DVec lb;
     DVec ub;
 
@@ -71,18 +106,35 @@ namespace loik {
     /// \brief default constructor
     ///
     DiffIKProblem() {};
+
+
   }; // struct DiffIKProblem
 
 
   template <typename _Scalar>
   struct SequenceDiffIKProblems {
+    using ptree = boost::property_tree::ptree;
     typedef DiffIKProblem<_Scalar> Problem;
+    using Index = typename Problem::Index;
+    using DVec = typename Problem::DVec;
+    using Vec6 = typename Problem::Vec6;
+    using Mat6x6 = typename Problem::Mat6x6;
+    template <typename T>
+    using pin_aligned_vec = pinocchio::container::aligned_vector<T>;
+
     std::vector<Problem> problem_sequence;
 
     ///
     /// \brief default constructor 
     ///
-    SequenceDiffIKProblems() {};
+    SequenceDiffIKProblems() { Reset(); };
+
+
+    ///
+    /// \brief clear problem_sequence
+    ///
+    inline void Reset() { problem_sequence.clear(); };
+
 
     ///
     /// \brief build sequence of diff IK problems from json 
@@ -90,6 +142,7 @@ namespace loik {
     void LoadProblemsFromJson(const std::string& file_name);
 
   }; // SequenceDiffIKProblems
+
 
 
 } // namespace loik 

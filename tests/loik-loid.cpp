@@ -108,7 +108,6 @@ struct ProblemSetupFixture
     // q << -2.79684649, -0.55090374,  0.424806  , -1.21112304, -0.89856966,
     //     0.79726132, -0.07125267,  0.13154589,  0.13171856;
     H_ref = Mat6x6::Identity();
-    H_ref_inertia = Inertia{H_ref};
     v_ref = Motion::Zero();
     active_task_constraint_ids.push_back(static_cast<Index>(robot_model.njoints - 1));
 
@@ -145,7 +144,6 @@ struct ProblemSetupFixture
   DVec q;
 
   Mat6x6 H_ref;
-  Inertia H_ref_inertia;
   Motion v_ref;
   std::vector<Index> active_task_constraint_ids;
   PINOCCHIO_ALIGNED_STD_VECTOR(Mat6x6) Ais;

@@ -25,7 +25,7 @@ namespace loik
     using ProblemFormulation = IkProblemFormulationOptimized<_Scalar>;
     using IkIdData = IkIdDataTypeOptimizedTpl<_Scalar>;
     IKID_DATA_TYPEDEF_TEMPLATE(IkIdData);
-    
+
 
     struct LoikSolverInfo : Base::SolverInfo
     {
@@ -605,11 +605,10 @@ namespace loik
     }; // Solve general purpose
 
     ///
-    /// \brief Stand alone Solve, solves the constrained differential IK problem.
+    /// \brief Tailored Solve, solves the constrained differential IK problem.
     ///
-    /// Attention, this `Solve()` call will wipe the problem formulation everytime, therefore
-    /// not the most efficient implementation, consider using tailored `Solve()` for specific
-    /// scenarios such as trakectory tracking.
+    /// This `Solve()` call is tailored for trajectory tracking problems, where
+    /// constraints are only updated at a specific joint ID, `c_id`
     ///
     /// \param[in] q                               current generalized configuration  (DVec)
     /// \param[in] c_id                            joint ids where equality constraint need to be
