@@ -28,22 +28,17 @@ namespace loik {
     void PtreeToMat(const ptree& pt, const MatLike& mat);
 
     ///
+    /// \brief parse ptree to data object
+    ///
+    template <typename T>
+    void PtreeToDataObj(const ptree& pt, const T& data_obj);
+
+    ///
     /// \brief parse ptree to `std::vector<T>` container-like object
     ///
     template <typename T, template<typename...> class Container>
-    void PtreeToContainerVec(const ptree& pt, const Container<T>& container);
+    void PtreeToContainerOfObj(const ptree& pt, const Container<T>& container);
 
-    ///
-    /// \brief parse ptree to std::vector of Eigen vector like object
-    ///
-    template <typename VecLike, template<typename> class VecOfVecLike>
-    void PtreeToVecOfVec(const ptree& pt, const VecOfVecLike<VecLike>& vec_of_vec);
-
-    ///
-    /// \brief parse ptree to std::vector of Eigen matrix like object
-    ///
-    template <typename MatLike, template<typename> class VecOfMatLike>
-    void PtreeToVecOfMat(const ptree& pt, const VecOfMatLike<MatLike>& vec_of_mat);
 
   } // namespace utils
 
@@ -52,6 +47,8 @@ namespace loik {
     using ptree = boost::property_tree::ptree;
     typedef IkIdDataTypeOptimizedTpl<_Scalar> IkIdDataTypeOptimized;
     IKID_DATA_TYPEDEF_TEMPLATE(IkIdDataTypeOptimized);
+
+    std::string name;
 
     // solver hyper params
     int max_iter;
@@ -63,16 +60,12 @@ namespace loik {
     Scalar rho;
     Scalar mu0;
     Scalar mu_equality_scale_factor;
-
-    int num_eq_c = 1;
+    int num_eq_c;
     int eq_c_dim = 6;
     bool warm_start = false;
     bool verbose = false;
     bool logging = false;
 
-    // Model robot_model;
-
-    // std::string urdf_filename;
 
     // problem definitions
     DVec q;
@@ -84,6 +77,7 @@ namespace loik {
     PINOCCHIO_ALIGNED_STD_VECTOR(Vec6) bis;
     DVec lb;
     DVec ub;
+
 
     // solution info
     bool converged;
@@ -99,8 +93,6 @@ namespace loik {
     DVec w;
     DVec z;
     
-
-
 
     ///
     /// \brief default constructor
@@ -119,6 +111,7 @@ namespace loik {
     using DVec = typename Problem::DVec;
     using Vec6 = typename Problem::Vec6;
     using Mat6x6 = typename Problem::Mat6x6;
+    using Motion = typename Problem::Motion;
     template <typename T>
     using pin_aligned_vec = pinocchio::container::aligned_vector<T>;
 

@@ -85,8 +85,8 @@ endif()
 # --- OPTIONS ----------------------------------------
 option(BUILD_WITH_VERSION_SUFFIX "Build libraries with version appended to suffix" OFF)
 option(ENABLE_TEMPLATE_INSTANTIATION "Template instantiation of the main library" ON)
-option(BUILD_WITH_EXTENDED_TESTING "Build library with extended testing" ON)
-option(BUILD_WITH_BENCHMARK "Build library with timing benchmarks" ON)
+option(BUILD_WITH_EXTENDED_TESTING "Build library with extended testing" OFF)
+option(BUILD_WITH_BENCHMARK "Build library with timing benchmarks" OFF)
 
 # --- OPTIONAL DEPENDENCIES -------------------------
 option(INITIALIZE_WITH_NAN "Initialize Eigen entries with NaN" OFF)

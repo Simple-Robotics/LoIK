@@ -748,6 +748,10 @@ namespace loik
     {
       tol_tail_solve_ = tol;
     };
+    inline int get_tail_solve_iter() const 
+    {
+      return tail_solve_iter_;
+    };
 
     /// Debug utility functions
     inline Scalar get_delta_x_qp_inf_norm()

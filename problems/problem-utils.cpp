@@ -3,7 +3,7 @@
 namespace loik {
 
 	namespace utils {
-	
+		/// General implementation of data loader utils template functions
 	
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////
@@ -21,23 +21,6 @@ namespace loik {
 			}
 			vec_out = Eigen::Map<VecLike>(std_vec.data(), std_vec.size());
 		} // PtreeToVec
-
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////
-		template <typename VecLike, template<typename> class VecOfVecLike>
-		void 
-		PtreeToVecOfVec(const ptree& pt, const VecOfVecLike<VecLike>& vec_of_vec)
-		{
-			VecOfVecLike<VecLike>& vec_of_vec_out = const_cast<VecOfVecLike<VecLike>&>(vec_of_vec);
-			for (const auto& item : pt) {
-				VecLike vec;
-				PtreeToVec(item.second, vec);
-        vec_of_vec_out.push_back(vec);
-    	}
-
-		} // PtreeToVecOfVec
 
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,35 +53,32 @@ namespace loik {
 			}
 
 		} // PtreeToMat
-		
+
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////
-		template <typename MatLike, template<typename> class VecOfMatLike>
-		void 
-		PtreeToVecOfMat(const ptree& pt, const VecOfMatLike<MatLike>& vec_of_mat)
+		template <typename T>
+		void PtreeToDataObj(const ptree& pt, const T& data_obj)
 		{
-			VecOfMatLike<MatLike>& vec_of_mat_out = const_cast<VecOfMatLike<MatLike>&>(vec_of_mat);
-			for (const auto& item : pt) {
-				MatLike mat;
-				PtreeToMat(item.second, mat);
-        vec_of_mat_out.push_back(mat);
-    	}
-		} // PtreeToVecOfMat
+			T& data_obj_out = const_cast<T&>(data_obj);
+			data_obj_out = pt.get_value<T>();
+		} //PtreeToDataObj
 
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		template <typename T, template<typename...> class Container>
-		void PtreeToContainerVec(const ptree& pt, const Container<T>& container)
+		void PtreeToContainerOfObj(const ptree& pt, const Container<T>& container)
 		{
 			Container<T>& container_out = const_cast<Container<T>&>(container);
 			for (const auto& item : pt) {
-				container_out.push_back(item.second.get_value<T>());
+				T data_obj = T{};
+				PtreeToDataObj(item.second, data_obj);
+				container_out.push_back(data_obj);
 			}
-		} //PtreeToContainerVec
+		} //PtreeToContainerOfObj
 		
 
 	} // namespace utils
@@ -111,7 +91,7 @@ namespace loik {
 	void SequenceDiffIKProblems<_Scalar>::LoadProblemsFromJson(const std::string& file_name)
 	{
 		Reset();
-		std::string problem_data_file_path = LOIK_PROBLEM_DATA_DIR + file_name;
+		std::string problem_data_file_path = file_name;
 
 		ptree pt;
 
@@ -141,6 +121,9 @@ namespace loik {
 			const ptree& problem_sol = problem.get_child("solution");
 
 			/// Parse solver param
+
+			// name 
+			problem_struct.name = time_key;
 
 			// max_iter
 			problem_struct.max_iter = problem_def.get<int>("max_iter");
@@ -174,46 +157,39 @@ namespace loik {
 
 			// q
 			const ptree& q_pt = problem_def.get_child("q");
-			utils::PtreeToVec<DVec>(q_pt, problem_struct.q);
+			utils::PtreeToDataObj<DVec>(q_pt, problem_struct.q);
 
 			// H_refs
 			const ptree& H_refs_pt = problem_def.get_child("H_refs");
-			utils::PtreeToVecOfMat<Mat6x6, pin_aligned_vec>(H_refs_pt, problem_struct.H_refs);
+			utils::PtreeToContainerOfObj<Mat6x6, pin_aligned_vec>(H_refs_pt, problem_struct.H_refs);
 
 			// v_refs
+			const ptree& v_refs_pt = problem_def.get_child("v_refs");
+			utils::PtreeToContainerOfObj<Motion, pin_aligned_vec>(v_refs_pt, problem_struct.v_refs);
 
 			// active_task_constraint_ids
 			const ptree& active_task_constraint_ids_pt = problem_def.get_child("active_task_constraint_ids");
-			utils::PtreeToContainerVec<Index, std::vector>(active_task_constraint_ids_pt, problem_struct.active_task_constraint_ids);
-			std::cout << "active_task_constraint_ids: " << std::endl;
-			for (const auto& id : problem_struct.active_task_constraint_ids) {
-				std::cout << "id: " << id << std::endl;
-			}
+			utils::PtreeToContainerOfObj<Index, std::vector>(active_task_constraint_ids_pt, problem_struct.active_task_constraint_ids);
 
 			// Ais
 			const ptree& Ais_pt = problem_def.get_child("Ais");
-			utils::PtreeToVecOfMat<Mat6x6, pin_aligned_vec>(Ais_pt, problem_struct.Ais);
-			std::cout << "Ais: " << std::endl;
-			for (const auto& Ai : problem_struct.Ais) {
-				std::cout << "Ai: " << Ai << std::endl;
-			}
+			utils::PtreeToContainerOfObj<Mat6x6, pin_aligned_vec>(Ais_pt, problem_struct.Ais);
 
 			// bis
 			const ptree& bis_pt = problem_def.get_child("bis");
-			utils::PtreeToVecOfVec<Vec6, pin_aligned_vec>(bis_pt, problem_struct.bis);
-			std::cout << "bis: " << std::endl;
-			for (const auto& bi : problem_struct.bis) {
-				std::cout << "bi: " << bi.transpose() << std::endl;
-			}
+			utils::PtreeToContainerOfObj<Vec6, pin_aligned_vec>(bis_pt, problem_struct.bis);
 
 			// lb 
 			const ptree& lb_pt = problem_def.get_child("lb");
-			utils::PtreeToVec<DVec>(lb_pt, problem_struct.lb);
+			utils::PtreeToDataObj<DVec>(lb_pt, problem_struct.lb);
+
 
 			// ub
 			const ptree& ub_pt = problem_def.get_child("ub");
-			utils::PtreeToVec<DVec>(ub_pt, problem_struct.ub);
+			utils::PtreeToDataObj<DVec>(ub_pt, problem_struct.ub);
 
+			// num_eq_c
+			problem_struct.num_eq_c = static_cast<int>(problem_struct.bis.size());
 
 
 			/// Parse solution info
@@ -245,22 +221,21 @@ namespace loik {
 			// n_active_ineq_constraint
 
 			// vis
+			const ptree& vis_pt = problem_sol.get_child("vis");
+			utils::PtreeToContainerOfObj<Motion, pin_aligned_vec>(vis_pt, problem_struct.vis);
 
 			// yis
 			const ptree& yis_pt = problem_sol.get_child("yis");
-			utils::PtreeToVecOfVec<Vec6, pin_aligned_vec>(yis_pt, problem_struct.yis);
-			std::cout << "yis: " << std::endl;
-			for (const auto& yi : problem_struct.yis) {
-				std::cout << "yi: " << yi.transpose() << std::endl;
-			}
+			utils::PtreeToContainerOfObj<Vec6, pin_aligned_vec>(yis_pt, problem_struct.yis);
 
 			// w
 			const ptree& w_pt = problem_sol.get_child("w");
-			utils::PtreeToVec<DVec>(w_pt, problem_struct.w);
+			utils::PtreeToDataObj<DVec>(w_pt, problem_struct.w);
+
 
 			// z
 			const ptree& z_pt = problem_sol.get_child("z");
-			utils::PtreeToVec<DVec>(z_pt, problem_struct.z);
+			utils::PtreeToDataObj<DVec>(z_pt, problem_struct.z);
 
 
 			/// push problem to problem_sequence
@@ -270,7 +245,8 @@ namespace loik {
 
 	} // SequenceDiffIKProblems::LoadProblemsFromJson
 
-	/// explicit instantiation 
+
+	/// explicit instantiation and specializations
 	namespace utils {
 		using Index = typename loik::DiffIKProblem<double>::Index;
 		using DVec = typename loik::DiffIKProblem<double>::DVec;
@@ -280,12 +256,36 @@ namespace loik {
 
 		template<typename T>
 		using pin_aligned_vec = typename pinocchio::container::aligned_vector<T>;
+
+		// explicit instantiation
 		template void PtreeToVec<DVec>(const ptree&, const DVec&);
 		template void PtreeToVec<Vec6>(const ptree&, const Vec6&);
-		template void PtreeToVecOfVec<Vec6, pin_aligned_vec>(const ptree&, const pin_aligned_vec<Vec6>&);
 		template void PtreeToMat<Mat6x6>(const ptree&, const Mat6x6&);
-		template void PtreeToVecOfMat<Mat6x6, pin_aligned_vec>(const ptree&, const pin_aligned_vec<Mat6x6>&);
-		template void PtreeToContainerVec<Index, std::vector>(const ptree&, const std::vector<Index>&);
+
+		
+		// `PtreeToDataObj` specializations 
+		template <>
+		void PtreeToDataObj<DVec>(const ptree& pt, const DVec& vec) { PtreeToVec<DVec>(pt, vec); } // PtreeToDataObj<DVec>
+		template <>
+		void PtreeToDataObj<Vec6>(const ptree& pt, const Vec6& vec) { PtreeToVec<Vec6>(pt, vec); } // PtreeToDataObj<Vec6>
+		template <>
+		void PtreeToDataObj<Mat6x6>(const ptree& pt, const Mat6x6& mat) { PtreeToMat<Mat6x6>(pt, mat); } // PtreeToDataObj<Mat6x6>
+		template <>
+		void PtreeToDataObj<Motion>(const ptree& pt, const Motion& motion)
+		{
+			Motion& motion_out = const_cast<Motion&>(motion);
+			Motion::Vector6 motion_v6 = Motion::Vector6::Zero();
+			PtreeToVec(pt, motion_v6);
+			motion_out = motion_v6;
+		} // PtreeToDataObj<Motion>
+
+		// explicit instantiation
+		template void PtreeToDataObj<Index>(const ptree&, const Index&);
+		template void PtreeToContainerOfObj<Index, std::vector>(const ptree&, const std::vector<Index>&);
+		template void PtreeToContainerOfObj<DVec, pin_aligned_vec>(const ptree&, const pin_aligned_vec<DVec>&);
+		template void PtreeToContainerOfObj<Vec6, pin_aligned_vec>(const ptree&, const pin_aligned_vec<Vec6>&);
+		template void PtreeToContainerOfObj<Mat6x6, pin_aligned_vec>(const ptree&, const pin_aligned_vec<Mat6x6>&);
+		template void PtreeToContainerOfObj<Motion, pin_aligned_vec>(const ptree&, const pin_aligned_vec<Motion>&);
 
 	} // namespace utils
 

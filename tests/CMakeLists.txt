@@ -25,9 +25,19 @@ function(add_loik_test name)
 
   target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME} Boost::unit_test_framework
                                              example-robot-data::example-robot-data)
+
+  if(${BUILD_WITH_EXTENDED_TESTING})
+    target_include_directories(${test_name} PRIVATE ${PROJECT_SOURCE_DIR})
+    target_link_libraries(${test_name} PRIVATE problem-utils)
+  endif()
 endfunction()
 
 add_loik_test(loik-loid)
+
+if(${BUILD_WITH_EXTENDED_TESTING})
+  add_loik_test(loik-extended)
+endif()
+
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 if(uppercase_CMAKE_BUILD_TYPE STREQUAL DEBUG)
