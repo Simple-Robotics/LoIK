@@ -21,27 +21,11 @@ namespace loik
   struct FirstOrderLoikOptimizedTpl : IkIdSolverBaseTpl<_Scalar>
   {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     typedef IkIdSolverBaseTpl<_Scalar> Base;
-    // using Base = IkIdSolverBaseTpl<_Scalar>;
-    typedef typename Base::Scalar Scalar;
-    // using Scalar = typename Base::Scalar;
-    using Model = pinocchio::ModelTpl<_Scalar>;
-    using IkIdData = IkIdDataTypeOptimizedTpl<_Scalar>;
-    using JointModel = typename IkIdData::JointModel;
-    using JointData = typename IkIdData::JointData;
     using ProblemFormulation = IkProblemFormulationOptimized<_Scalar>;
-    // using Inertia = typename IkIdData::Inertia;
-    using Motion = typename IkIdData::Motion;
-    using Force = typename IkIdData::Force;
-    using SE3 = typename IkIdData::SE3;
-    using DMat = typename IkIdData::DMat;
-    using DVec = typename IkIdData::DVec;
-    using Vec3 = typename IkIdData::Vec3;
-    using Vec6 = typename IkIdData::Vec6;
-    using Mat6x6 = typename IkIdData::Mat6x6;
-    using Index = typename IkIdData::Index;
-    using IndexVec = typename IkIdData::IndexVector;
+    using IkIdData = IkIdDataTypeOptimizedTpl<_Scalar>;
+    IKID_DATA_TYPEDEF_TEMPLATE(IkIdData);
+
 
     struct LoikSolverInfo : Base::SolverInfo
     {
@@ -621,11 +605,10 @@ namespace loik
     }; // Solve general purpose
 
     ///
-    /// \brief Stand alone Solve, solves the constrained differential IK problem.
+    /// \brief Tailored Solve, solves the constrained differential IK problem.
     ///
-    /// Attention, this `Solve()` call will wipe the problem formulation everytime, therefore
-    /// not the most efficient implementation, consider using tailored `Solve()` for specific
-    /// scenarios such as trakectory tracking.
+    /// This `Solve()` call is tailored for trajectory tracking problems, where
+    /// constraints are only updated at a specific joint ID, `c_id`
     ///
     /// \param[in] q                               current generalized configuration  (DVec)
     /// \param[in] c_id                            joint ids where equality constraint need to be
@@ -765,6 +748,10 @@ namespace loik
     {
       tol_tail_solve_ = tol;
     };
+    inline int get_tail_solve_iter() const 
+    {
+      return tail_solve_iter_;
+    };
 
     /// Debug utility functions
     inline Scalar get_delta_x_qp_inf_norm()
@@ -855,8 +842,8 @@ namespace loik
     int nj_;                    // number of joints in the model_
     int nb_;                    // number of bodies in the model_, 'nb_ = nj_ - 1'
     int nv_;                    // dimension of nu_ (q_dot)
-    IndexVec joint_full_range_; // index of full joint range, [0, njoints - 1]
-    IndexVec joint_range_; // index of joint range excluding the world/universe [1, njoints - 1]
+    IndexVector joint_full_range_; // index of full joint range, [0, njoints - 1]
+    IndexVector joint_range_; // index of joint range excluding the world/universe [1, njoints - 1]
 
     // warm_start flag
     bool warm_start_;

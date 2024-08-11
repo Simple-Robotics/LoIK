@@ -31,16 +31,6 @@
 #include <cstddef>
 #include <set>
 
-// namespace loik
-// {
-
-//   template<
-//     typename _Scalar,
-//     int _Options = 0,
-//     template<typename S, int O> class JointCollectionTpl = pinocchio::JointCollectionDefaultTpl>
-//   struct IkIdDataTypeOptimizedTpl;
-
-// }
 
 namespace pinocchio
 {
@@ -49,6 +39,38 @@ namespace pinocchio
   struct traits<loik::IkIdDataTypeOptimizedTpl<_Scalar, _Options, JointCollectionTpl>>
   {
     typedef _Scalar Scalar;
+    typedef pinocchio::ModelTpl<_Scalar, _Options, JointCollectionTpl> Model;
+
+    typedef pinocchio::SE3Tpl<_Scalar, _Options> SE3;
+    typedef pinocchio::MotionTpl<_Scalar, _Options> Motion;
+    typedef pinocchio::ForceTpl<_Scalar, _Options> Force;
+    typedef pinocchio::InertiaTpl<_Scalar, _Options> Inertia;
+    typedef pinocchio::FrameTpl<_Scalar, _Options> Frame;
+
+    typedef pinocchio::Index Index;
+    typedef pinocchio::JointIndex JointIndex;
+    typedef pinocchio::FrameIndex FrameIndex;
+    typedef std::vector<Index> IndexVector;
+
+    typedef pinocchio::JointModelTpl<_Scalar, _Options, JointCollectionTpl> JointModel;
+    typedef pinocchio::JointDataTpl<_Scalar, _Options, JointCollectionTpl> JointData;
+
+    typedef PINOCCHIO_ALIGNED_STD_VECTOR(JointModel) JointModelVector;
+    typedef PINOCCHIO_ALIGNED_STD_VECTOR(JointData) JointDataVector;
+
+    typedef Eigen::Matrix<_Scalar, Eigen::Dynamic, Eigen::Dynamic, _Options> DMat;
+    typedef Eigen::Matrix<_Scalar, Eigen::Dynamic, 1, _Options> DVec;
+    typedef Eigen::Matrix<_Scalar, 3, 1, _Options> Vec3;
+    typedef Eigen::Matrix<_Scalar, 6, 1, _Options> Vec6;
+    typedef Eigen::Matrix<_Scalar, 6, 6> Mat6x6;
+
+    /// \brief Dense vectorized version of a joint configuration vector, q.
+    typedef DVec ConfigVectorType;
+
+    /// \brief Dense vectorized version of a joint tangent vector (e.g. velocity, acceleration,
+    /// etc), q_dot.
+    ///        It also handles the notion of co-tangent vector (e.g. torque, etc).
+    typedef DVec TangentVectorType;
   };
 
 } // namespace pinocchio
@@ -65,44 +87,13 @@ namespace loik
   {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    typedef _Scalar Scalar;
+    typedef IkIdDataTypeOptimizedTpl<_Scalar, _Options, JointCollectionTpl> Derived;
+    IKID_DATA_TYPEDEF_TEMPLATE(Derived);
+
     enum
     {
       Options = _Options
     };
-
-    typedef pinocchio::ModelTpl<Scalar, Options, JointCollectionTpl> Model;
-
-    typedef pinocchio::SE3Tpl<Scalar, Options> SE3;
-    typedef pinocchio::MotionTpl<Scalar, Options> Motion;
-    typedef pinocchio::ForceTpl<Scalar, Options> Force;
-    typedef pinocchio::InertiaTpl<Scalar, Options> Inertia;
-    typedef pinocchio::FrameTpl<Scalar, Options> Frame;
-
-    typedef pinocchio::Index Index;
-    typedef pinocchio::JointIndex JointIndex;
-    typedef pinocchio::FrameIndex FrameIndex;
-    typedef std::vector<Index> IndexVector;
-
-    typedef pinocchio::JointModelTpl<Scalar, Options, JointCollectionTpl> JointModel;
-    typedef pinocchio::JointDataTpl<Scalar, Options, JointCollectionTpl> JointData;
-
-    typedef PINOCCHIO_ALIGNED_STD_VECTOR(JointModel) JointModelVector;
-    typedef PINOCCHIO_ALIGNED_STD_VECTOR(JointData) JointDataVector;
-
-    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Options> DMat;
-    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1, Options> DVec;
-    typedef Eigen::Matrix<Scalar, 3, 1, Options> Vec3;
-    typedef Eigen::Matrix<Scalar, 6, 1, Options> Vec6;
-    typedef Eigen::Matrix<Scalar, 6, 6> Mat6x6;
-
-    /// \brief Dense vectorized version of a joint configuration vector, q.
-    typedef DVec ConfigVectorType;
-
-    /// \brief Dense vectorized version of a joint tangent vector (e.g. velocity, acceleration,
-    /// etc), q_dot.
-    ///        It also handles the notion of co-tangent vector (e.g. torque, etc).
-    typedef DVec TangentVectorType;
 
     /// \brief Vector of pinocchio::JointData associated to the pinocchio::JointModel stored in
     /// model, encapsulated in JointDataAccessor.

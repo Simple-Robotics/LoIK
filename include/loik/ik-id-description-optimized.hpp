@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "fwd.hpp"
 #include "loik/macros.hpp"
 #include "loik/loik-loid-data-optimized.hpp"
 
@@ -17,15 +18,8 @@ namespace loik
   struct IkProblemFormulationOptimized
   {
     using IkIdDataOptimized = IkIdDataTypeOptimizedTpl<_Scalar>;
-    using Motion = typename IkIdDataOptimized::Motion;
-    using Force = typename IkIdDataOptimized::Force;
-    using DMat = typename IkIdDataOptimized::DMat;
-    using DVec = typename IkIdDataOptimized::DVec;
-    using Vec3 = typename IkIdDataOptimized::Vec3;
-    using Vec6 = typename IkIdDataOptimized::Vec6;
-    using Mat6x6 = typename IkIdDataOptimized::Mat6x6;
-    using Index = typename IkIdDataOptimized::Index;
-    using IndexVec = typename IkIdDataOptimized::IndexVector;
+    IKID_DATA_TYPEDEF_TEMPLATE(IkIdDataOptimized);
+    
 
     explicit IkProblemFormulationOptimized(
       const int nj, const int nb, const int nc_eq, const int eq_c_dim, const int ineq_c_dim)
