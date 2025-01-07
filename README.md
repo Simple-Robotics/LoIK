@@ -102,7 +102,7 @@ Please also consider citing the reference paper for the **LoIK** algorithm:
 ## Contributors
 
 * [Bruce Wingo](https://bwingo47.github.io/) (Inria, Georgia Tech): main developer and manager of the project
-* [Ajay Sathya](https://scholar.google.com/citations?user=A00LDswAAAAJ&hl=en) (Inria): algorithm developer and core developer. 
+* [Ajay Sathya](https://scholar.google.com/citations?user=A00LDswAAAAJ&hl=en) (Inria): algorithm developer and core developer.
 * [Joris Vaillant](https://github.com/jorisv) (Inria): core developer
 * [Stéphane Caron](https://scaron.info/) (Inria): core developer
 * [Seth Hutchinson](https://faculty.cc.gatech.edu/~seth/) (Georgia Tech): project instructor
