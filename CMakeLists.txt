@@ -191,7 +191,7 @@ function(create_library)
     tag_library_version(${PROJECT_NAME})
   endif()
 
-  target_link_libraries(${PROJECT_NAME} PUBLIC pinocchio::pinocchio)
+  target_link_libraries(${PROJECT_NAME} PUBLIC pinocchio::pinocchio_default)
   target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen)
   target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost)
 

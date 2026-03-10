@@ -19,8 +19,9 @@ function(add_loik_test name)
   target_compile_definitions(${test_name} PRIVATE BOOST_TEST_DYN_LINK
                                                   BOOST_TEST_MODULE=${MODULE_NAME})
 
-  target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME} Boost::unit_test_framework
-                                             example-robot-data::example-robot-data)
+  target_link_libraries(
+    ${test_name} PRIVATE ${PROJECT_NAME} pinocchio::pinocchio_parsers Boost::unit_test_framework
+                         example-robot-data::example-robot-data)
 endfunction()
 
 add_loik_test(loik-loid)
