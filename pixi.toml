@@ -24,11 +24,13 @@ pkg-config = ">=0.29.2"
 
 [package.host-dependencies]
 eigen = ">=3.4.0"
+eigen-abi-devel = ">=3.4.0"
 pinocchio = ">=3.0.0"
 libboost-devel = ">=1.84.0"
 
 [package.run-dependencies]
 libboost-devel = ">=1.80.0"
+eigen = ">=3.4.0"
 
 [dependencies]
 ccache = ">=4.9.1"
