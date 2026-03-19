@@ -114,7 +114,7 @@ jobs:
 
     needs:
       - loik-pixi
-      - loik-pixi-build
+      # - loik-pixi-build
 
     runs-on: Ubuntu-latest
 
