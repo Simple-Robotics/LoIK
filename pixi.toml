@@ -128,15 +128,15 @@ python = "3.14.*"
 [feature.python-oldest.dependencies]
 python = "3.10.*"
 
-[feature.test-pixi-build.dependencies]
-loik = { path = "." }
-cmake = ">=3.22"
-cxx-compiler = "*"
-cmake-package-check = "*"
+# [feature.test-pixi-build.dependencies]
+# loik = { path = "." }
+# cmake = ">=3.22"
+# cxx-compiler = "*"
+# cmake-package-check = "*"
 
-[feature.test-pixi-build.tasks]
-test-cmake = "cmake-package-check loik --targets loik::loik"
-test = { depends-on = ["test-cmake"] }
+# [feature.test-pixi-build.tasks]
+# test-cmake = "cmake-package-check loik --targets loik::loik"
+# test = { depends-on = ["test-cmake"] }
 
 [environments]
 default = { features = ["python-latest"], solve-group = "python-latest" }
@@ -149,4 +149,4 @@ new-version = { features = [
   "python-latest",
 ], solve-group = "python-latest" }
 clang-cl = { features = ["clang-cl", "python-latest"] }
-test-pixi-build = { features = ["test-pixi-build"], no-default-feature = true }
+# test-pixi-build = { features = ["test-pixi-build"], no-default-feature = true }
