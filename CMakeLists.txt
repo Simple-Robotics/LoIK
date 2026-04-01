@@ -119,7 +119,7 @@ endmacro()
 # ----------------------------------------------------
 # --- DEPENDENCIES -----------------------------------
 # ----------------------------------------------------
-add_project_dependency(Eigen3 3.4.0 REQUIRED PKG_CONFIG_REQUIRES "eigen3 >= 3.4.0")
+add_project_dependency(Eigen3 REQUIRED PKG_CONFIG_REQUIRES "eigen3 >= 3.4.0")
 add_project_dependency(pinocchio REQUIRED PKG_CONFIG_REQUIRES "pinocchio >= 3.0.0")
 
 set(BOOST_REQUIRED_COMPONENTS serialization)
