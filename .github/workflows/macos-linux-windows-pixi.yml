@@ -40,13 +40,13 @@ jobs:
         build_type: [Release, Debug]
 
         include:
-          - os: windows-latest
+          - os: windows-2022
             build_type: Release
             environment: default
-          - os: windows-latest
+          - os: windows-2022
             build_type: Release
             environment: python-oldest
-          - os: windows-latest
+          - os: windows-2022
             build_type: Release
             environment: clang-cl
 
@@ -90,7 +90,7 @@ jobs:
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       os: [ubuntu-latest, macos-latest, macos-15-intel, windows-latest]
+  #       os: [ubuntu-latest, macos-latest, macos-15-intel, windows-2022]
 
   #   steps:
   #     - uses: actions/checkout@v6
