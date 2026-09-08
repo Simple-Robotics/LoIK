@@ -4,6 +4,22 @@
 
 It is designed to function as an inner solver for various downstream applications, including global inverse kinematics and sampling-based motion planning.
 
+## Table of contents
+
+- [LoIK](#loik)
+   * [Features](#features)
+   * [Installation](#installation)
+      + [Build from source](#build-from-source)
+         - [Dependencies](#dependencies)
+         - [Notes](#notes)
+      + [Build/install from source with Pixi](#buildinstall-from-source-with-pixi)
+   * [Benchmarking](#benchmarking)
+   * [Citing LoIK](#citing-loik)
+   * [Contribution](#contribution)
+   * [Core-dev team](#core-dev-team)
+   * [Credits](#credits)
+   * [Acknowledgments](#acknowledgments)
+
 ## Features
 
 **LoIK** is a C++ template library, which provides:
@@ -99,14 +115,26 @@ Please also consider citing the reference paper for the **LoIK** algorithm:
 }
 ```
 
-## Contributors
+## Contribution
+
+If you want to ask a question, report a bug, request a new feature or contributing with a pull requests please, follow the [contribution guideline](./development/contributing.md).
+
+## Core-dev team
+
+The currently active core developers of **LoIK** are:
 
 * [Bruce Wingo](https://bwingo47.github.io/) (Inria, Georgia Tech): main developer and manager of the project
-* [Ajay Sathya](https://scholar.google.com/citations?user=A00LDswAAAAJ&hl=en) (Inria): algorithm developer and core developer.
 * [Joris Vaillant](https://github.com/jorisv) (Inria): core developer
+* [Jeanne Matheron](https://github.com/j-matheron) (Inria): core developer
+* [Justin Carpentier](https://jcarpent.github.io/) (Inria): project instructor and core developer
+* [Ajay Sathya](https://scholar.google.com/citations?user=A00LDswAAAAJ&hl=en) (Inria): algorithm developer and core developer.
+
+## Credits
+
+In addition to the core dev team, the following people have also been involved in the development of **LoIK** and are warmly thanked for their contributions:
+
 * [Stéphane Caron](https://scaron.info/) (Inria): core developer
 * [Seth Hutchinson](https://faculty.cc.gatech.edu/~seth/) (Georgia Tech): project instructor
-* [Justin Carpentier](https://jcarpent.github.io/) (Inria): project instructor and core developer
 
 ## Acknowledgments
 
