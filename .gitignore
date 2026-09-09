@@ -1,5 +1,5 @@
-build*
-Xcode*
+build*/
+Xcode/*
 *~
 *.pyc
 **/.ipynb_checkpoints
