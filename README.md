@@ -117,7 +117,7 @@ Please also consider citing the reference paper for the **LoIK** algorithm:
 
 ## Contribution
 
-If you want to ask a question, report a bug, request a new feature or contributing with a pull requests please, follow the [contribution guideline](./development/contributing.md).
+If you want to ask a question, report a bug, request a new feature or contributing with a pull requests please, follow the [contribution guideline](./contributing.md).
 
 ## Core-dev team
 
